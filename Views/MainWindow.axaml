@@ -1,0 +1,94 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:SubRenamer.ViewModels"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d" d:DesignWidth="900" d:DesignHeight="700"
+        x:Class="SubRenamer.Views.MainWindow"
+        x:DataType="vm:MainViewModel"
+        Title="SubRenamer - 字幕重命名工具">
+
+  <Design.DataContext>
+    <vm:MainViewModel/>
+  </Design.DataContext>
+
+  <Grid RowDefinitions="Auto,Auto,Auto,*,Auto">
+    <!-- 路径选择 -->
+    <Grid Grid.Row="0" Margin="8" ColumnDefinitions="*,Auto">
+      <TextBox Grid.Column="0" Text="{Binding FolderPath}" Watermark="请输入或选择文件夹路径"/>
+      <Button Grid.Column="1" Content="浏览..." Command="{Binding BrowseFolderCommand}" Margin="4,0,0,0"/>
+    </Grid>
+
+    <!-- 普通模式：扩展名配置 -->
+    <Grid Grid.Row="1" Margin="8,0,8,8" ColumnDefinitions="*,*,Auto,Auto,Auto" IsVisible="{Binding !IsRegexMode}">
+      <TextBox Grid.Column="0" Text="{Binding VideoExts}" Watermark="视频扩展名(逗号分隔)"/>
+      <TextBox Grid.Column="1" Text="{Binding SubtitleExts}" Watermark="字幕扩展名(逗号分隔)" Margin="8,0,0,0"/>
+      <TextBox Grid.Column="2" Text="{Binding MinMatchRate}" Watermark="匹配度阈值" Margin="8,0,0,0" Width="100"/>
+      <TextBox Grid.Column="3" Text="{Binding Delimiter}" Watermark="分隔符" Margin="8,0,0,0" Width="80"/>
+      <Button Grid.Column="4" Content="正则模式 ▼" Click="ToggleRegexMode_Click" Margin="8,0,0,0"/>
+    </Grid>
+
+    <!-- 正则模式面板 -->
+    <Grid Grid.Row="1" Margin="8,0,8,8" IsVisible="{Binding IsRegexMode}">
+      <Grid.RowDefinitions>
+        <RowDefinition Height="Auto"/>
+        <RowDefinition Height="Auto"/>
+        <RowDefinition Height="Auto"/>
+        <RowDefinition Height="Auto"/>
+      </Grid.RowDefinitions>
+      <TextBlock Grid.Row="0" Text="视频文件名格式：" FontWeight="Bold"/>
+      <Grid Grid.Row="1" Margin="0,4,0,8" ColumnDefinitions="*,Auto,*,Auto,Auto">
+        <TextBox Grid.Column="0" Text="{Binding VideoLeft}" Watermark="左边固定部分"/>
+        <TextBlock Grid.Column="1" Text="集号" VerticalAlignment="Center" HorizontalAlignment="Center" Margin="4,0"/>
+        <TextBox Grid.Column="2" Text="{Binding VideoRight}" Watermark="右边固定部分"/>
+        <Button Grid.Column="3" Content="转义字符" Command="{Binding EscapeRegexCommand}" Margin="4,0"/>
+        <Button Grid.Column="4" Content="普通模式 ▲" Click="ToggleRegexMode_Click"/>
+      </Grid>
+      <TextBlock Grid.Row="2" Text="字幕文件名格式：" FontWeight="Bold"/>
+      <Grid Grid.Row="3" Margin="0,4,0,0" ColumnDefinitions="*,Auto,*">
+        <TextBox Grid.Column="0" Text="{Binding SubtitleLeft}" Watermark="左边固定部分"/>
+        <TextBlock Grid.Column="1" Text="集号" VerticalAlignment="Center" HorizontalAlignment="Center" Margin="4,0"/>
+        <TextBox Grid.Column="2" Text="{Binding SubtitleRight}" Watermark="右边固定部分"/>
+      </Grid>
+    </Grid>
+
+    <!-- 操作按钮 -->
+    <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="8,0,8,8" Spacing="8">
+      <Button Content="加载文件" Command="{Binding LoadFilesCommand}" IsDefault="True"/>
+      <Button Content="开始重命名" Command="{Binding RenameCommand}" Background="#0078D7" Foreground="White"/>
+      <Button Content="撤销" Command="{Binding UndoCommand}" IsEnabled="{Binding CanUndo}"/>
+    </StackPanel>
+
+    <!-- 文件列表 -->
+    <ScrollViewer Grid.Row="3" Margin="8,0,8,8">
+      <ItemsControl ItemsSource="{Binding MatchGroups}">
+        <ItemsControl.ItemTemplate>
+          <DataTemplate>
+            <Border Margin="0,4" Background="{DynamicResource SystemAltLowColor}"
+                    BorderBrush="{DynamicResource SystemControlForegroundBaseLowBrush}"
+                    BorderThickness="1" CornerRadius="4">
+              <StackPanel Margin="8">
+                <TextBlock Text="{Binding VideoName}" FontWeight="SemiBold"
+                           Foreground="{Binding IsOtherGroup, Converter={StaticResource BoolToColorConverter}}"/>
+                <ItemsControl ItemsSource="{Binding Subtitles}" Margin="20,4,0,0">
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                      <TextBlock Text="{Binding Name}" FontSize="13" Margin="0,2"/>
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
+              </StackPanel>
+            </Border>
+          </DataTemplate>
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
+    </ScrollViewer>
+
+    <!-- 进度栏和状态栏 -->
+    <Grid Grid.Row="4" ColumnDefinitions="*,Auto" Margin="8,4">
+      <ProgressBar Grid.Column="0" Value="{Binding ProgressValue}" Maximum="{Binding ProgressMax}"
+                   IsIndeterminate="{Binding IsBusy}" Height="20" VerticalAlignment="Center"/>
+      <TextBlock Grid.Column="1" Text="{Binding StatusMessage}" VerticalAlignment="Center" Margin="8,0,0,0"/>
+    </Grid>
+  </Grid>
+</Window>
