@@ -1,5 +1,6 @@
 using System.Collections.ObjectModel;
 using System.Windows.Input;
+using Avalonia.Media;
 using SubRenamer.Models;
 
 namespace SubRenamer.ViewModels
@@ -28,6 +29,23 @@ namespace SubRenamer.ViewModels
             get => _isOtherGroup;
             set => SetProperty(ref _isOtherGroup, value);
         }
+
+        private bool _isDragOver;
+        public bool IsDragOver
+        {
+            get => _isDragOver;
+            set
+            {
+                if (SetProperty(ref _isDragOver, value))
+                {
+                    OnPropertyChanged(nameof(BackgroundBrush));
+                }
+            }
+        }
+
+        public Brush BackgroundBrush => _isDragOver
+            ? new SolidColorBrush(Color.FromArgb(80, 0, 120, 215))
+            : new SolidColorBrush(Color.FromArgb(20, 128, 128, 128));
     }
 
     public class SubtitleItem : ViewModelBase
@@ -45,6 +63,15 @@ namespace SubRenamer.ViewModels
             get => _file;
             set => SetProperty(ref _file, value);
         }
+
+        private bool _isDragging;
+        public bool IsDragging
+        {
+            get => _isDragging;
+            set => SetProperty(ref _isDragging, value);
+        }
+
+        public FileMatchGroup? ParentGroup { get; set; }
     }
 
     public class MainViewModel : ViewModelBase
@@ -271,7 +298,7 @@ namespace SubRenamer.ViewModels
                     }
                     foreach (var sub in matchedSubs)
                     {
-                        group.Subtitles.Add(new SubtitleItem { Name = sub.Name, File = sub });
+                        group.Subtitles.Add(new SubtitleItem { Name = sub.Name, File = sub, ParentGroup = group });
                         allSubs.Remove(sub);
                     }
                 }
@@ -288,7 +315,7 @@ namespace SubRenamer.ViewModels
                 };
                 foreach (var sub in allSubs)
                 {
-                    otherGroup.Subtitles.Add(new SubtitleItem { Name = sub.Name, File = sub });
+                    otherGroup.Subtitles.Add(new SubtitleItem { Name = sub.Name, File = sub, ParentGroup = otherGroup });
                 }
                 MatchGroups.Add(otherGroup);
             }
@@ -314,7 +341,7 @@ namespace SubRenamer.ViewModels
                 var subs = Renamer.GetSubList(subDic, videoDic[video]);
                 foreach (var sub in subs)
                 {
-                    group.Subtitles.Add(new SubtitleItem { Name = sub.Name, File = sub });
+                    group.Subtitles.Add(new SubtitleItem { Name = sub.Name, File = sub, ParentGroup = group });
                     allSubs.Remove(sub);
                 }
 
@@ -330,7 +357,7 @@ namespace SubRenamer.ViewModels
                 };
                 foreach (var sub in allSubs)
                 {
-                    otherGroup.Subtitles.Add(new SubtitleItem { Name = sub.Name, File = sub });
+                    otherGroup.Subtitles.Add(new SubtitleItem { Name = sub.Name, File = sub, ParentGroup = otherGroup });
                 }
                 MatchGroups.Add(otherGroup);
             }
@@ -478,7 +505,7 @@ namespace SubRenamer.ViewModels
                 var subs = Renamer.GetSubList(_names, video.Num);
                 foreach (var sub in subs)
                 {
-                    group.Subtitles.Add(new SubtitleItem { Name = sub.Name, File = sub });
+                    group.Subtitles.Add(new SubtitleItem { Name = sub.Name, File = sub, ParentGroup = group });
                     allSubs.Remove(sub);
                 }
 
@@ -494,7 +521,7 @@ namespace SubRenamer.ViewModels
                 };
                 foreach (var sub in allSubs)
                 {
-                    otherGroup.Subtitles.Add(new SubtitleItem { Name = sub.Name, File = sub });
+                    otherGroup.Subtitles.Add(new SubtitleItem { Name = sub.Name, File = sub, ParentGroup = otherGroup });
                 }
                 MatchGroups.Add(otherGroup);
             }
@@ -526,6 +553,41 @@ namespace SubRenamer.ViewModels
                 .Replace("+", "\\+")
                 .Replace(".", "\\.")
                 .Replace("?", "\\?");
+        }
+
+        public void MoveSubtitle(FileMatchGroup sourceGroup, FileMatchGroup targetGroup, SubtitleItem subtitle)
+        {
+            if (!sourceGroup.Subtitles.Contains(subtitle)) return;
+
+            if (sourceGroup != targetGroup)
+            {
+                sourceGroup.Subtitles.Remove(subtitle);
+                targetGroup.Subtitles.Add(subtitle);
+                subtitle.ParentGroup = targetGroup;
+            }
+
+            ClearDragStates();
+            RenameCommand.RaiseCanExecuteChanged();
+        }
+
+        public void ClearDragStates()
+        {
+            foreach (var group in MatchGroups)
+            {
+                group.IsDragOver = false;
+                foreach (var sub in group.Subtitles)
+                {
+                    sub.IsDragging = false;
+                }
+            }
+        }
+
+        public void SetDragOverGroup(FileMatchGroup? group)
+        {
+            foreach (var g in MatchGroups)
+            {
+                g.IsDragOver = (g == group);
+            }
         }
 
         private void UpdateCanUndo()

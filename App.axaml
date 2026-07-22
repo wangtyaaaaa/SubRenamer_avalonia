@@ -4,6 +4,8 @@
              x:Class="SubRenamer.App">
   <Application.Resources>
     <converters:BoolToColorConverter x:Key="BoolToColorConverter"/>
+    <converters:BoolToHighlightBrushConverter x:Key="BoolToHighlightBrushConverter"/>
+    <converters:BoolToOpacityConverter x:Key="BoolToOpacityConverter"/>
   </Application.Resources>
   <Application.Styles>
     <FluentTheme />

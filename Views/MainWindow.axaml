@@ -61,10 +61,10 @@
 
     <!-- 文件列表 -->
     <ScrollViewer Grid.Row="3" Margin="8,0,8,8">
-      <ItemsControl ItemsSource="{Binding MatchGroups}">
+      <ItemsControl x:Name="FileList" ItemsSource="{Binding MatchGroups}">
         <ItemsControl.ItemTemplate>
           <DataTemplate>
-            <Border Margin="0,4" Background="{DynamicResource SystemAltLowColor}"
+            <Border Margin="0,4" Background="{Binding BackgroundBrush}"
                     BorderBrush="{DynamicResource SystemControlForegroundBaseLowBrush}"
                     BorderThickness="1" CornerRadius="4">
               <StackPanel Margin="8">
@@ -73,7 +73,12 @@
                 <ItemsControl ItemsSource="{Binding Subtitles}" Margin="20,4,0,0">
                   <ItemsControl.ItemTemplate>
                     <DataTemplate>
-                      <TextBlock Text="{Binding Name}" FontSize="13" Margin="0,2"/>
+                      <Border x:Name="SubtitleItemBorder" Background="{Binding IsDragging, Converter={StaticResource BoolToHighlightBrushConverter}}"
+                              Padding="4,2" BorderBrush="Transparent" BorderThickness="1"
+                              CornerRadius="2" Margin="0,1"
+                              PointerPressed="OnSubtitlePointerPressed">
+                        <TextBlock Text="{Binding Name}" FontSize="13"/>
+                      </Border>
                     </DataTemplate>
                   </ItemsControl.ItemTemplate>
                 </ItemsControl>
