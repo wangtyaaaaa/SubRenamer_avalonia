@@ -1,6 +1,8 @@
 using System.Collections.ObjectModel;
 using System.Windows.Input;
+using Avalonia.Controls;
 using Avalonia.Media;
+using Avalonia.Platform.Storage;
 using SubRenamer.Models;
 
 namespace SubRenamer.ViewModels
@@ -157,14 +159,37 @@ namespace SubRenamer.ViewModels
             }
         }
 
-        private string _minMatchRate = "0.5";
+        private string _minMatchRate = "0.7";
         /// <summary>
         /// 文件名匹配度阈值（0-1之间）
         /// </summary>
         public string MinMatchRate
         {
             get => _minMatchRate;
-            set => SetProperty(ref _minMatchRate, value);
+            set
+            {
+                if (SetProperty(ref _minMatchRate, value))
+                {
+                    OnPropertyChanged(nameof(IsMatchRateValid));
+                }
+            }
+        }
+
+        /// <summary>
+        /// 匹配度阈值是否有效（0到1之间的小数）
+        /// </summary>
+        public bool IsMatchRateValid
+        {
+            get
+            {
+                if (string.IsNullOrWhiteSpace(_minMatchRate))
+                    return false;
+                if (double.TryParse(_minMatchRate, out double rate))
+                {
+                    return rate >= 0 && rate <= 1;
+                }
+                return false;
+            }
         }
 
         private string? _delimiter = null;
@@ -326,11 +351,29 @@ namespace SubRenamer.ViewModels
         }
 
         /// <summary>
-        /// 浏览文件夹（占位实现）
+        /// 浏览文件夹，打开系统文件夹选择对话框
         /// </summary>
         private async Task BrowseFolderAsync()
         {
-            await Task.Run(() => { });
+            var app = Avalonia.Application.Current;
+            if (app?.ApplicationLifetime is not Avalonia.Controls.ApplicationLifetimes.IClassicDesktopStyleApplicationLifetime desktop) return;
+
+            var window = desktop.MainWindow;
+            // 2. 判断窗口和 StorageProvider 是否存在
+            if (window?.StorageProvider == null) return;
+
+            // 3. 使用新的 StorageProvider API 打开文件夹选择器
+            var folders = await window.StorageProvider.OpenFolderPickerAsync(new FolderPickerOpenOptions
+            {
+                Title = "选择文件夹",
+                AllowMultiple = false // 不允许选择多个文件夹
+            });
+
+            // 4. 判断用户是否选择了文件夹并获取路径
+            if (folders.Count > 0)
+            {
+                FolderPath = folders[0].TryGetLocalPath() ?? folders[0].Name;
+            }
         }
 
         /// <summary>

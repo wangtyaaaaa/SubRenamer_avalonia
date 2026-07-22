@@ -1,12 +1,21 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="using:SubRenamer.ViewModels"
+        xmlns:c="using:SubRenamer.Converters"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        mc:Ignorable="d" d:DesignWidth="900" d:DesignHeight="700"
+        mc:Ignorable="d" d:DesignWidth="500" d:DesignHeight="500"
         x:Class="SubRenamer.Views.MainWindow"
         x:DataType="vm:MainViewModel"
-        Title="SubRenamer - 字幕重命名工具">
+        Title="SubRenamer - 字幕重命名工具"
+        Width="500" Height="500" MinHeight="500" MinWidth="500">
+
+  <Window.Resources>
+    <c:BoolToColorConverter x:Key="BoolToColorConverter"/>
+    <c:BoolToHighlightBrushConverter x:Key="BoolToHighlightBrushConverter"/>
+    <c:BoolToOpacityConverter x:Key="BoolToOpacityConverter"/>
+    <c:ValidToBackgroundBrushConverter x:Key="ValidToBackgroundBrushConverter"/>
+  </Window.Resources>
 
   <Design.DataContext>
     <vm:MainViewModel/>
@@ -20,12 +29,12 @@
     </Grid>
 
     <!-- 普通模式：扩展名配置 -->
-    <Grid Grid.Row="1" Margin="8,0,8,8" ColumnDefinitions="*,*,Auto,Auto,Auto" IsVisible="{Binding !IsRegexMode}">
+    <Grid Grid.Row="1" Margin="8,0,8,8" ColumnDefinitions="*,*,Auto,Auto" IsVisible="{Binding !IsRegexMode}">
       <TextBox Grid.Column="0" Text="{Binding VideoExts}" Watermark="视频扩展名(逗号分隔)"/>
-      <TextBox Grid.Column="1" Text="{Binding SubtitleExts}" Watermark="字幕扩展名(逗号分隔)" Margin="8,0,0,0"/>
-      <TextBox Grid.Column="2" Text="{Binding MinMatchRate}" Watermark="匹配度阈值" Margin="8,0,0,0" Width="100"/>
-      <TextBox Grid.Column="3" Text="{Binding Delimiter}" Watermark="分隔符" Margin="8,0,0,0" Width="80"/>
-      <Button Grid.Column="4" Content="正则模式 ▼" Click="ToggleRegexMode_Click" Margin="8,0,0,0"/>
+      <TextBox Grid.Column="1" Text="{Binding SubtitleExts}" Watermark="字幕扩展名(逗号分隔)" Margin="8,0,0,0" />
+      <TextBox Grid.Column="2" Text="{Binding MinMatchRate}" Watermark="匹配度" Margin="8,0,0,0" Width="50" ToolTip.Tip="字幕分组用最小相似度 0~1的小数"
+               Background="{Binding IsMatchRateValid, Converter={StaticResource ValidToBackgroundBrushConverter}}"/>
+      <TextBox Grid.Column="3" Text="{Binding Delimiter}" Watermark="分隔符" Margin="8,0,0,0" Width="50" ToolTip.Tip="保留最后一个分隔符右侧的字符"/>
     </Grid>
 
     <!-- 正则模式面板 -->
@@ -37,12 +46,10 @@
         <RowDefinition Height="Auto"/>
       </Grid.RowDefinitions>
       <TextBlock Grid.Row="0" Text="视频文件名格式：" FontWeight="Bold"/>
-      <Grid Grid.Row="1" Margin="0,4,0,8" ColumnDefinitions="*,Auto,*,Auto,Auto">
+      <Grid Grid.Row="1" Margin="0,4,0,8" ColumnDefinitions="*,Auto,*">
         <TextBox Grid.Column="0" Text="{Binding VideoLeft}" Watermark="左边固定部分"/>
         <TextBlock Grid.Column="1" Text="集号" VerticalAlignment="Center" HorizontalAlignment="Center" Margin="4,0"/>
         <TextBox Grid.Column="2" Text="{Binding VideoRight}" Watermark="右边固定部分"/>
-        <Button Grid.Column="3" Content="转义字符" Command="{Binding EscapeRegexCommand}" Margin="4,0"/>
-        <Button Grid.Column="4" Content="普通模式 ▲" Click="ToggleRegexMode_Click"/>
       </Grid>
       <TextBlock Grid.Row="2" Text="字幕文件名格式：" FontWeight="Bold"/>
       <Grid Grid.Row="3" Margin="0,4,0,0" ColumnDefinitions="*,Auto,*">
@@ -53,11 +60,18 @@
     </Grid>
 
     <!-- 操作按钮 -->
-    <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="8,0,8,8" Spacing="8">
-      <Button Content="加载文件" Command="{Binding LoadFilesCommand}" IsDefault="True"/>
-      <Button Content="开始重命名" Command="{Binding RenameCommand}" Background="#0078D7" Foreground="White"/>
-      <Button Content="撤销" Command="{Binding UndoCommand}" IsEnabled="{Binding CanUndo}"/>
-    </StackPanel>
+    <Grid Grid.Row="2" Margin="8,0,8,8" ColumnDefinitions="*,Auto">
+      <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="8">
+        <Button Content="加载文件" Command="{Binding LoadFilesCommand}" IsDefault="True"/>
+        <Button Content="开始重命名" Command="{Binding RenameCommand}" Background="#0078D7" Foreground="White"/>
+        <Button Content="撤销" Command="{Binding UndoCommand}" IsEnabled="{Binding CanUndo}"/>
+      </StackPanel>
+      <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right">
+        <Button Content="正则模式 ▼" Click="ToggleRegexMode_Click" IsVisible="{Binding !IsRegexMode}"/>
+        <Button Content="转义字符" Command="{Binding EscapeRegexCommand}" IsVisible="{Binding IsRegexMode}"/>
+        <Button Content="普通模式 ▲" Click="ToggleRegexMode_Click" IsVisible="{Binding IsRegexMode}"/>
+      </StackPanel>
+    </Grid>
 
     <!-- 文件列表 -->
     <ScrollViewer Grid.Row="3" Margin="8,0,8,8">
