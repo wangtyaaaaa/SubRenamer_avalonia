@@ -8,22 +8,54 @@ using SubRenamer.ViewModels;
 
 namespace SubRenamer.Views
 {
+    /// <summary>
+    /// 主窗口代码后台，处理UI交互逻辑
+    /// </summary>
     public partial class MainWindow : Window
     {
+        /// <summary>
+        /// 当前正在拖拽的字幕项
+        /// </summary>
         private SubtitleItem? _draggingSubtitle;
+        /// <summary>
+        /// 当前拖拽字幕所属的源组
+        /// </summary>
         private FileMatchGroup? _draggingSourceGroup;
+        /// <summary>
+        /// 拖拽时显示的幽灵控件（跟随鼠标的预览）
+        /// </summary>
         private Border? _draggingGhost;
+        /// <summary>
+        /// 承载幽灵控件的画布
+        /// </summary>
         private Canvas? _dragGhostCanvas;
+        /// <summary>
+        /// 拖拽开始时的鼠标位置
+        /// </summary>
         private Point _dragStartPoint;
+        /// <summary>
+        /// 是否正在进行拖拽操作
+        /// </summary>
         private bool _isDragging;
+        /// <summary>
+        /// 拖拽阈值（超过此距离才认为是拖拽操作）
+        /// </summary>
         private const double DragThreshold = 4.0;
 
+        /// <summary>
+        /// 构造函数
+        /// </summary>
         public MainWindow()
         {
             InitializeComponent();
             DataContext = new MainViewModel();
         }
 
+        /// <summary>
+        /// 切换正则模式按钮点击事件
+        /// </summary>
+        /// <param name="sender">事件发送者</param>
+        /// <param name="e">路由事件参数</param>
         private void ToggleRegexMode_Click(object? sender, RoutedEventArgs e)
         {
             if (DataContext is MainViewModel vm)
@@ -32,6 +64,10 @@ namespace SubRenamer.Views
             }
         }
 
+        /// <summary>
+        /// 数据上下文变更事件
+        /// </summary>
+        /// <param name="e">事件参数</param>
         protected override void OnDataContextChanged(EventArgs e)
         {
             base.OnDataContextChanged(e);
@@ -45,7 +81,36 @@ namespace SubRenamer.Views
             }
         }
 
-        // 字幕项的 PointerPressed 事件（通过 DataTemplate 调用）
+        #if RELEASE
+        /// <summary>
+        /// 浏览文件夹（发布模式）
+        /// </summary>
+        /// <param name="vm">主视图模型</param>
+        private async System.Threading.Tasks.Task BrowseFolderAsync(MainViewModel vm)
+        {
+            var topLevel = GetTopLevel(this);
+            if (topLevel == null) return;
+
+            var result = await topLevel.StorageProvider.OpenFolderPickerAsync(new FolderPickerOpenOptions
+            {
+                Title = "选择文件夹",
+                AllowMultiple = false
+            });
+
+            if (result.Count > 0)
+            {
+                var path = result[0].Path.LocalPath;
+                vm.SetFolderPath(path);
+            }
+        }
+#endif
+
+        /// <summary>
+        /// 字幕项的鼠标按下事件（通过 DataTemplate 调用）
+        /// 初始化拖拽操作
+        /// </summary>
+        /// <param name="sender">事件发送者（字幕项的 Border 控件）</param>
+        /// <param name="e">鼠标按下事件参数</param>
         public void OnSubtitlePointerPressed(object? sender, PointerPressedEventArgs e)
         {
             if (e.GetCurrentPoint(this).Properties.IsLeftButtonPressed == false) return;
@@ -57,12 +122,18 @@ namespace SubRenamer.Views
             _dragStartPoint = e.GetPosition(this);
             _isDragging = false;
 
+            // 注册鼠标移动和释放事件
             PointerMoved += OnPointerMovedDrag;
             PointerReleased += OnPointerReleasedDrag;
 
             e.Handled = true;
         }
 
+        /// <summary>
+        /// 鼠标移动事件（拖拽过程中）
+        /// </summary>
+        /// <param name="sender">事件发送者</param>
+        /// <param name="e">鼠标事件参数</param>
         private void OnPointerMovedDrag(object? sender, PointerEventArgs e)
         {
             if (_draggingSubtitle == null) return;
@@ -70,11 +141,13 @@ namespace SubRenamer.Views
             var currentPos = e.GetPosition(this);
             var diff = currentPos - _dragStartPoint;
 
+            // 判断是否超过拖拽阈值
             if (!_isDragging)
             {
                 if (Math.Abs(diff.X) < DragThreshold && Math.Abs(diff.Y) < DragThreshold)
                     return;
 
+                // 开始拖拽
                 _isDragging = true;
                 _draggingSubtitle.IsDragging = true;
                 CreateDragGhost();
@@ -82,7 +155,9 @@ namespace SubRenamer.Views
 
             if (_isDragging)
             {
+                // 更新幽灵控件位置
                 UpdateDragGhostPosition(currentPos);
+                // 查找鼠标下方的目标组
                 var hoverGroup = FindGroupUnderMouse(currentPos);
                 if (DataContext is MainViewModel vm)
                 {
@@ -91,6 +166,9 @@ namespace SubRenamer.Views
             }
         }
 
+        /// <summary>
+        /// 创建拖拽幽灵控件（跟随鼠标的预览）
+        /// </summary>
         private void CreateDragGhost()
         {
             if (_draggingSubtitle == null) return;
@@ -134,6 +212,10 @@ namespace SubRenamer.Views
             _dragGhostCanvas?.Children.Add(_draggingGhost);
         }
 
+        /// <summary>
+        /// 更新拖拽幽灵控件的位置
+        /// </summary>
+        /// <param name="position">当前鼠标位置</param>
         private void UpdateDragGhostPosition(Point position)
         {
             if (_draggingGhost == null || _dragGhostCanvas == null) return;
@@ -142,6 +224,12 @@ namespace SubRenamer.Views
             Canvas.SetTop(_draggingGhost, position.Y + 10);
         }
 
+        /// <summary>
+        /// 查找鼠标位置下方的文件匹配组
+        /// 通过遍历视觉树找到对应的 FileMatchGroup
+        /// </summary>
+        /// <param name="position">鼠标位置</param>
+        /// <returns>找到的文件匹配组，未找到返回 null</returns>
         private FileMatchGroup? FindGroupUnderMouse(Point position)
         {
             var element = this.InputHitTest(position) as Visual;
@@ -159,11 +247,18 @@ namespace SubRenamer.Views
             return null;
         }
 
+        /// <summary>
+        /// 鼠标释放事件（拖拽结束）
+        /// </summary>
+        /// <param name="sender">事件发送者</param>
+        /// <param name="e">鼠标释放事件参数</param>
         private void OnPointerReleasedDrag(object? sender, PointerReleasedEventArgs e)
         {
+            // 注销鼠标移动和释放事件
             PointerMoved -= OnPointerMovedDrag;
             PointerReleased -= OnPointerReleasedDrag;
 
+            // 处理拖拽结束逻辑
             if (_isDragging && DataContext is MainViewModel vm)
             {
                 var hoverGroup = FindGroupUnderMouse(e.GetPosition(this));
@@ -177,7 +272,7 @@ namespace SubRenamer.Views
                 }
             }
 
-            // 清理幽灵
+            // 清理幽灵控件
             if (_dragGhostCanvas != null)
             {
                 if (_draggingGhost != null)
@@ -190,6 +285,7 @@ namespace SubRenamer.Views
                 }
             }
 
+            // 重置拖拽状态
             _draggingGhost = null;
             _dragGhostCanvas = null;
             _draggingSubtitle = null;
@@ -197,24 +293,6 @@ namespace SubRenamer.Views
             _isDragging = false;
         }
 
-#if RELEASE
-        private async System.Threading.Tasks.Task BrowseFolderAsync(MainViewModel vm)
-        {
-            var topLevel = GetTopLevel(this);
-            if (topLevel == null) return;
 
-            var result = await topLevel.StorageProvider.OpenFolderPickerAsync(new FolderPickerOpenOptions
-            {
-                Title = "选择文件夹",
-                AllowMultiple = false
-            });
-
-            if (result.Count > 0)
-            {
-                var path = result[0].Path.LocalPath;
-                vm.SetFolderPath(path);
-            }
-        }
-#endif
     }
 }

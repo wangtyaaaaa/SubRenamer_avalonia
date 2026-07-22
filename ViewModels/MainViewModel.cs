@@ -5,9 +5,15 @@ using SubRenamer.Models;
 
 namespace SubRenamer.ViewModels
 {
+    /// <summary>
+    /// 文件匹配组，包含一个视频文件和对应的字幕文件列表
+    /// </summary>
     public class FileMatchGroup : ViewModelBase
     {
         private string _videoName = string.Empty;
+        /// <summary>
+        /// 视频文件名
+        /// </summary>
         public string VideoName
         {
             get => _videoName;
@@ -15,15 +21,24 @@ namespace SubRenamer.ViewModels
         }
 
         private FileInfo? _videoFile;
+        /// <summary>
+        /// 视频文件信息
+        /// </summary>
         public FileInfo? VideoFile
         {
             get => _videoFile;
             set => SetProperty(ref _videoFile, value);
         }
 
+        /// <summary>
+        /// 字幕文件列表
+        /// </summary>
         public ObservableCollection<SubtitleItem> Subtitles { get; set; } = new();
 
         private bool _isOtherGroup;
+        /// <summary>
+        /// 是否为"其他字幕文件"组
+        /// </summary>
         public bool IsOtherGroup
         {
             get => _isOtherGroup;
@@ -31,6 +46,9 @@ namespace SubRenamer.ViewModels
         }
 
         private bool _isDragOver;
+        /// <summary>
+        /// 是否有字幕正在拖拽到此组上方
+        /// </summary>
         public bool IsDragOver
         {
             get => _isDragOver;
@@ -43,14 +61,23 @@ namespace SubRenamer.ViewModels
             }
         }
 
+        /// <summary>
+        /// 背景画刷，根据拖拽状态动态变化
+        /// </summary>
         public Brush BackgroundBrush => _isDragOver
             ? new SolidColorBrush(Color.FromArgb(80, 0, 120, 215))
             : new SolidColorBrush(Color.FromArgb(20, 128, 128, 128));
     }
 
+    /// <summary>
+    /// 字幕项，代表一个字幕文件
+    /// </summary>
     public class SubtitleItem : ViewModelBase
     {
         private string _name = string.Empty;
+        /// <summary>
+        /// 字幕文件名
+        /// </summary>
         public string Name
         {
             get => _name;
@@ -58,6 +85,9 @@ namespace SubRenamer.ViewModels
         }
 
         private FileInfo? _file;
+        /// <summary>
+        /// 字幕文件信息
+        /// </summary>
         public FileInfo? File
         {
             get => _file;
@@ -65,18 +95,30 @@ namespace SubRenamer.ViewModels
         }
 
         private bool _isDragging;
+        /// <summary>
+        /// 是否正在被拖拽
+        /// </summary>
         public bool IsDragging
         {
             get => _isDragging;
             set => SetProperty(ref _isDragging, value);
         }
 
+        /// <summary>
+        /// 所属的文件匹配组（用于拖拽时快速查找源组）
+        /// </summary>
         public FileMatchGroup? ParentGroup { get; set; }
     }
 
+    /// <summary>
+    /// 主窗口视图模型，包含所有业务逻辑和数据管理
+    /// </summary>
     public class MainViewModel : ViewModelBase
     {
         private string _folderPath = Environment.CurrentDirectory;
+        /// <summary>
+        /// 当前选择的文件夹路径
+        /// </summary>
         public string FolderPath
         {
             get => _folderPath;
@@ -84,6 +126,9 @@ namespace SubRenamer.ViewModels
         }
 
         private string _videoExts = "mp4,mkv";
+        /// <summary>
+        /// 视频文件扩展名列表（逗号分隔）
+        /// </summary>
         public string VideoExts
         {
             get => _videoExts;
@@ -97,6 +142,9 @@ namespace SubRenamer.ViewModels
         }
 
         private string _subtitleExts = "ass,ssa,sub,srt";
+        /// <summary>
+        /// 字幕文件扩展名列表（逗号分隔）
+        /// </summary>
         public string SubtitleExts
         {
             get => _subtitleExts;
@@ -110,6 +158,9 @@ namespace SubRenamer.ViewModels
         }
 
         private string _minMatchRate = "0.5";
+        /// <summary>
+        /// 文件名匹配度阈值（0-1之间）
+        /// </summary>
         public string MinMatchRate
         {
             get => _minMatchRate;
@@ -117,6 +168,9 @@ namespace SubRenamer.ViewModels
         }
 
         private string? _delimiter = null;
+        /// <summary>
+        /// 分隔符，用于提取字幕扩展名
+        /// </summary>
         public string? Delimiter
         {
             get => _delimiter;
@@ -124,6 +178,9 @@ namespace SubRenamer.ViewModels
         }
 
         private bool _isRegexMode;
+        /// <summary>
+        /// 是否启用正则模式
+        /// </summary>
         public bool IsRegexMode
         {
             get => _isRegexMode;
@@ -131,6 +188,9 @@ namespace SubRenamer.ViewModels
         }
 
         private string _videoLeft = string.Empty;
+        /// <summary>
+        /// 正则模式下视频文件名左边固定部分
+        /// </summary>
         public string VideoLeft
         {
             get => _videoLeft;
@@ -138,6 +198,9 @@ namespace SubRenamer.ViewModels
         }
 
         private string _videoRight = string.Empty;
+        /// <summary>
+        /// 正则模式下视频文件名右边固定部分
+        /// </summary>
         public string VideoRight
         {
             get => _videoRight;
@@ -145,6 +208,9 @@ namespace SubRenamer.ViewModels
         }
 
         private string _subtitleLeft = string.Empty;
+        /// <summary>
+        /// 正则模式下字幕文件名左边固定部分
+        /// </summary>
         public string SubtitleLeft
         {
             get => _subtitleLeft;
@@ -152,6 +218,9 @@ namespace SubRenamer.ViewModels
         }
 
         private string _subtitleRight = string.Empty;
+        /// <summary>
+        /// 正则模式下字幕文件名右边固定部分
+        /// </summary>
         public string SubtitleRight
         {
             get => _subtitleRight;
@@ -159,6 +228,9 @@ namespace SubRenamer.ViewModels
         }
 
         private int _progressValue;
+        /// <summary>
+        /// 进度条当前值
+        /// </summary>
         public int ProgressValue
         {
             get => _progressValue;
@@ -166,6 +238,9 @@ namespace SubRenamer.ViewModels
         }
 
         private int _progressMax = 100;
+        /// <summary>
+        /// 进度条最大值
+        /// </summary>
         public int ProgressMax
         {
             get => _progressMax;
@@ -173,6 +248,9 @@ namespace SubRenamer.ViewModels
         }
 
         private string _statusMessage = "就绪";
+        /// <summary>
+        /// 状态栏消息
+        /// </summary>
         public string StatusMessage
         {
             get => _statusMessage;
@@ -180,6 +258,9 @@ namespace SubRenamer.ViewModels
         }
 
         private bool _isBusy;
+        /// <summary>
+        /// 是否正在执行耗时操作
+        /// </summary>
         public bool IsBusy
         {
             get => _isBusy;
@@ -187,23 +268,53 @@ namespace SubRenamer.ViewModels
         }
 
         private bool _canUndo;
+        /// <summary>
+        /// 是否可以撤销操作
+        /// </summary>
         public bool CanUndo
         {
             get => _canUndo;
             set => SetProperty(ref _canUndo, value);
         }
 
+        /// <summary>
+        /// 文件匹配组列表
+        /// </summary>
         public ObservableCollection<FileMatchGroup> MatchGroups { get; set; } = new();
 
+        /// <summary>
+        /// 文件名称解析器实例
+        /// </summary>
         private Names? _names;
 
+        /// <summary>
+        /// 加载文件命令
+        /// </summary>
         public ICommand LoadFilesCommand { get; }
+        /// <summary>
+        /// 重命名命令
+        /// </summary>
         public RelayCommand RenameCommand { get; }
+        /// <summary>
+        /// 撤销命令
+        /// </summary>
         public RelayCommand UndoCommand { get; }
+        /// <summary>
+        /// 解析集号命令
+        /// </summary>
         public ICommand ResolveCommand { get; }
+        /// <summary>
+        /// 浏览文件夹命令
+        /// </summary>
         public ICommand BrowseFolderCommand { get; set; }
+        /// <summary>
+        /// 转义正则表达式命令
+        /// </summary>
         public ICommand EscapeRegexCommand { get; }
 
+        /// <summary>
+        /// 构造函数，初始化所有命令
+        /// </summary>
         public MainViewModel()
         {
             LoadFilesCommand = new RelayCommand(async () => await LoadFilesAsync(), () => !IsBusy);
@@ -214,16 +325,26 @@ namespace SubRenamer.ViewModels
             EscapeRegexCommand = new RelayCommand(() => EscapeRegex(), () => !IsBusy);
         }
 
+        /// <summary>
+        /// 浏览文件夹（占位实现）
+        /// </summary>
         private async Task BrowseFolderAsync()
         {
             await Task.Run(() => { });
         }
 
+        /// <summary>
+        /// 设置文件夹路径
+        /// </summary>
+        /// <param name="path">文件夹路径</param>
         public void SetFolderPath(string path)
         {
             FolderPath = path;
         }
 
+        /// <summary>
+        /// 异步加载文件列表
+        /// </summary>
         private async Task LoadFilesAsync()
         {
             if (string.IsNullOrWhiteSpace(FolderPath) || !Directory.Exists(FolderPath))
@@ -268,6 +389,9 @@ namespace SubRenamer.ViewModels
             }
         }
 
+        /// <summary>
+        /// 加载普通模式（自动匹配）
+        /// </summary>
         private void LoadNormalMode()
         {
             if (_names == null) return;
@@ -289,11 +413,9 @@ namespace SubRenamer.ViewModels
 
                 if (!string.IsNullOrEmpty(video.Num))
                 {
-                    // 优先使用已解析的 Num 属性匹配
                     var matchedSubs = Renamer.GetSubListByNum(_names, video.Num);
                     if (matchedSubs.Count == 0)
                     {
-                        // 如果没有匹配到，尝试用集号匹配文件名
                         matchedSubs = Renamer.GetSubList(_names, video.Num);
                     }
                     foreach (var sub in matchedSubs)
@@ -321,6 +443,9 @@ namespace SubRenamer.ViewModels
             }
         }
 
+        /// <summary>
+        /// 加载正则模式（用户自定义匹配规则）
+        /// </summary>
         private void LoadRegexMode()
         {
             if (_names == null) return;
@@ -363,6 +488,9 @@ namespace SubRenamer.ViewModels
             }
         }
 
+        /// <summary>
+        /// 异步执行重命名操作
+        /// </summary>
         private async Task RenameAsync()
         {
             if (MatchGroups.Count == 0)
@@ -411,6 +539,9 @@ namespace SubRenamer.ViewModels
             }
         }
 
+        /// <summary>
+        /// 异步执行撤销操作
+        /// </summary>
         private async Task UndoAsync()
         {
             if (!Renamer.IsRedoAvailabel())
@@ -443,6 +574,9 @@ namespace SubRenamer.ViewModels
             }
         }
 
+        /// <summary>
+        /// 异步执行集号解析操作
+        /// </summary>
         private async Task ResolveAsync()
         {
             if (_names == null)
@@ -485,6 +619,9 @@ namespace SubRenamer.ViewModels
             }
         }
 
+        /// <summary>
+        /// 加载解析模式（使用已解析的集号匹配）
+        /// </summary>
         private void LoadResolvedMode()
         {
             if (_names == null) return;
@@ -527,6 +664,9 @@ namespace SubRenamer.ViewModels
             }
         }
 
+        /// <summary>
+        /// 转义正则表达式特殊字符
+        /// </summary>
         private void EscapeRegex()
         {
             VideoLeft = EscapeRegexString(VideoLeft);
@@ -535,6 +675,11 @@ namespace SubRenamer.ViewModels
             SubtitleRight = EscapeRegexString(SubtitleRight);
         }
 
+        /// <summary>
+        /// 转义字符串中的正则表达式特殊字符
+        /// </summary>
+        /// <param name="input">输入字符串</param>
+        /// <returns>转义后的字符串</returns>
         private static string EscapeRegexString(string input)
         {
             if (string.IsNullOrEmpty(input)) return input;
@@ -555,6 +700,12 @@ namespace SubRenamer.ViewModels
                 .Replace("?", "\\?");
         }
 
+        /// <summary>
+        /// 移动字幕到目标组
+        /// </summary>
+        /// <param name="sourceGroup">源组</param>
+        /// <param name="targetGroup">目标组</param>
+        /// <param name="subtitle">要移动的字幕</param>
         public void MoveSubtitle(FileMatchGroup sourceGroup, FileMatchGroup targetGroup, SubtitleItem subtitle)
         {
             if (!sourceGroup.Subtitles.Contains(subtitle)) return;
@@ -570,6 +721,9 @@ namespace SubRenamer.ViewModels
             RenameCommand.RaiseCanExecuteChanged();
         }
 
+        /// <summary>
+        /// 清除所有拖拽状态
+        /// </summary>
         public void ClearDragStates()
         {
             foreach (var group in MatchGroups)
@@ -582,6 +736,10 @@ namespace SubRenamer.ViewModels
             }
         }
 
+        /// <summary>
+        /// 设置当前拖拽悬停的组
+        /// </summary>
+        /// <param name="group">悬停的组，null表示没有悬停</param>
         public void SetDragOverGroup(FileMatchGroup? group)
         {
             foreach (var g in MatchGroups)
@@ -590,6 +748,9 @@ namespace SubRenamer.ViewModels
             }
         }
 
+        /// <summary>
+        /// 更新撤销按钮状态
+        /// </summary>
         private void UpdateCanUndo()
         {
             CanUndo = Renamer.IsRedoAvailabel();
@@ -597,28 +758,53 @@ namespace SubRenamer.ViewModels
         }
     }
 
+    /// <summary>
+    /// 通用命令实现类，支持同步和异步操作
+    /// </summary>
     public class RelayCommand : ICommand
     {
         private readonly Func<Task>? _executeAsync;
         private readonly Action? _execute;
         private readonly Func<bool> _canExecute;
 
+        /// <summary>
+        /// 构造函数（异步执行）
+        /// </summary>
+        /// <param name="execute">异步执行方法</param>
+        /// <param name="canExecute">是否可执行的判断方法</param>
         public RelayCommand(Func<Task> execute, Func<bool>? canExecute = null)
         {
             _executeAsync = execute;
             _canExecute = canExecute ?? (() => true);
         }
 
+        /// <summary>
+        /// 构造函数（同步执行）
+        /// </summary>
+        /// <param name="execute">同步执行方法</param>
+        /// <param name="canExecute">是否可执行的判断方法</param>
         public RelayCommand(Action execute, Func<bool>? canExecute = null)
         {
             _execute = execute;
             _canExecute = canExecute ?? (() => true);
         }
 
+        /// <summary>
+        /// 可执行状态变更事件
+        /// </summary>
         public event EventHandler? CanExecuteChanged;
 
+        /// <summary>
+        /// 判断命令是否可执行
+        /// </summary>
+        /// <param name="parameter">命令参数</param>
+        /// <returns>是否可执行</returns>
         public bool CanExecute(object? parameter) => _canExecute();
 
+        /// <summary>
+        /// 执行命令
+        /// </summary>
+        /// <param name="parameter">命令参数</param>
         public async void Execute(object? parameter)
         {
             if (_executeAsync != null)
@@ -631,6 +817,9 @@ namespace SubRenamer.ViewModels
             }
         }
 
+        /// <summary>
+        /// 触发可执行状态变更事件
+        /// </summary>
         public void RaiseCanExecuteChanged()
         {
             CanExecuteChanged?.Invoke(this, EventArgs.Empty);

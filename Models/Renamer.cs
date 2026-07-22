@@ -3,14 +3,33 @@ using System.Text.RegularExpressions;
 
 namespace SubRenamer.Models
 {
+    /// <summary>
+    /// 文件重命名器，负责字幕文件的匹配和重命名操作
+    /// </summary>
     internal class Renamer
     {
+        /// <summary>
+        /// 过滤垃圾信息的正则表达式（如编码格式、分辨率、hash值等）
+        /// </summary>
         private static readonly string regex = "(10[Bb][Ii][Tt])|([xXhH]26[45])|(\\d+([\\*Xx])\\d+)|([0-9]{2,5}([pP]))|(\\[[0-9a-fA-F]{8}\\])|(YYDM-11FANS)|([a-zA-Z]{2,5}([Rr][Ii][Pp]))|([0-9a-zA-Z_]{6,200})";
+        /// <summary>
+        /// 集号前缀的正则表达式（如"第"、"話"、"话"、"集"）
+        /// </summary>
         private static readonly string regex_headAndTail = "第|話|话|集";
+        /// <summary>
+        /// 撤销操作字典，键为旧文件名，值为新文件名
+        /// </summary>
         private static readonly Dictionary<string, string> redo = [];
 
+        /// <summary>
+        /// 进度变更事件
+        /// </summary>
         public static event Action<int, string>? ProgressChanged;
 
+        /// <summary>
+        /// 根据模式执行重命名操作
+        /// </summary>
+        /// <param name="names">文件名称管理器</param>
         public static void Rename(Names names)
         {
             if (names.IsRegex)
@@ -27,6 +46,10 @@ namespace SubRenamer.Models
             }
         }
 
+        /// <summary>
+        /// 使用已解析集号进行重命名
+        /// </summary>
+        /// <param name="names">文件名称管理器</param>
         private static void Rename_Reslobered(Names names)
         {
             int c = 0;
@@ -41,6 +64,11 @@ namespace SubRenamer.Models
             }
         }
 
+        /// <summary>
+        /// 普通模式重命名（自动提取集号）
+        /// </summary>
+        /// <param name="names">文件名称管理器</param>
+        /// <param name="count">进度计数起始值</param>
         public static void Rename(Names names, int count)
         {
             int c = count;
@@ -55,12 +83,17 @@ namespace SubRenamer.Models
                 List<FileInfo> subs = GetSubList(names, num);
                 RenameSubs(video.File, subs, null);
             }
+            // 递归处理子目录
             foreach (Names name in names.names)
             {
                 Rename(name, c);
             }
         }
 
+        /// <summary>
+        /// 正则模式重命名
+        /// </summary>
+        /// <param name="names">文件名称管理器</param>
         private static void Rename_Regex(Names names)
         {
             Dictionary<FileInfo, string> videoDic = GetDic(VSFile.FileListTOFileInfoList(names.videos), names.GetVideoReplasePattern());
@@ -74,6 +107,13 @@ namespace SubRenamer.Models
             }
         }
 
+        /// <summary>
+        /// 重命名字幕文件
+        /// 将字幕文件重命名为与视频文件同名（保留字幕扩展名）
+        /// </summary>
+        /// <param name="video">视频文件</param>
+        /// <param name="subs">字幕文件列表</param>
+        /// <param name="delimiter">分隔符（用于提取复杂扩展名）</param>
         internal static void RenameSubs(FileInfo video, List<FileInfo> subs, string? delimiter)
         {
             string vname = GetFullNameWithOutExtension(video);
@@ -88,6 +128,7 @@ namespace SubRenamer.Models
                 }
                 catch
                 {
+                    // 如果重命名失败，使用视频名+原字幕名作为新文件名
                     string new_name = vname + "." + sub.Name;
                     SetRedoDic(sub.FullName, new_name);
                     sub.MoveTo(new_name);
@@ -95,21 +136,33 @@ namespace SubRenamer.Models
             }
         }
 
+        /// <summary>
+        /// 设置撤销字典条目
+        /// </summary>
+        /// <param name="oldname">旧文件名</param>
+        /// <param name="newname">新文件名</param>
         private static void SetRedoDic(string oldname, string newname)
         {
             if (redo.ContainsKey(oldname))
             {
                 _ = redo.Remove(oldname);
             }
-
             redo.Add(oldname, newname);
         }
 
+        /// <summary>
+        /// 清空撤销字典
+        /// </summary>
         public static void ClearRedoDic()
         {
             redo.Clear();
         }
 
+        /// <summary>
+        /// 执行撤销操作
+        /// 将所有重命名的文件恢复到原来的名称
+        /// </summary>
+        /// <returns>是否撤销成功</returns>
         public static bool Redo()
         {
             Dictionary<string, string>.Enumerator e = redo.GetEnumerator();
@@ -134,11 +187,21 @@ namespace SubRenamer.Models
             return true;
         }
 
+        /// <summary>
+        /// 检查是否有可撤销的操作
+        /// </summary>
+        /// <returns>是否有可撤销操作</returns>
         public static bool IsRedoAvailabel()
         {
             return redo.Count != 0;
         }
 
+        /// <summary>
+        /// 根据正则模式提取文件名中的核心部分
+        /// </summary>
+        /// <param name="videos">文件列表</param>
+        /// <param name="p">正则替换模式</param>
+        /// <returns>文件信息到核心部分的字典</returns>
         internal static Dictionary<FileInfo, string> GetDic(List<FileInfo> videos, string p)
         {
             Dictionary<FileInfo, string> dic = new Dictionary<FileInfo, string>();
@@ -151,6 +214,11 @@ namespace SubRenamer.Models
             return dic;
         }
 
+        /// <summary>
+        /// 获取不含扩展名的完整文件名
+        /// </summary>
+        /// <param name="video">文件信息</param>
+        /// <returns>不含扩展名的完整路径</returns>
         private static string GetFullNameWithOutExtension(FileInfo video)
         {
             char[] cs = video.FullName.ToArray();
@@ -165,6 +233,12 @@ namespace SubRenamer.Models
             return str ?? "";
         }
 
+        /// <summary>
+        /// 获取字幕文件的完整扩展名（考虑复杂扩展名情况）
+        /// </summary>
+        /// <param name="sub">字幕文件</param>
+        /// <param name="delimiter">分隔符</param>
+        /// <returns>完整扩展名</returns>
         private static string GetFullExtension(FileInfo sub, string? delimiter)
         {
             if (delimiter == null || delimiter.Length == 0)
@@ -176,6 +250,12 @@ namespace SubRenamer.Models
             return name.Substring(index);
         }
 
+        /// <summary>
+        /// 获取字幕文件的完整扩展名
+        /// 处理复杂扩展名情况，如 .chs.ass、.eng.srt 等
+        /// </summary>
+        /// <param name="sub">字幕文件</param>
+        /// <returns>完整扩展名</returns>
         private static string GetFullExtension(FileInfo sub)
         {
             string name = sub.Name.Trim();
@@ -209,6 +289,12 @@ namespace SubRenamer.Models
             return sub.Extension;
         }
 
+        /// <summary>
+        /// 根据集号获取匹配的字幕文件列表（精确匹配）
+        /// </summary>
+        /// <param name="names">文件名称管理器</param>
+        /// <param name="num">集号</param>
+        /// <returns>匹配的字幕文件列表</returns>
         internal static List<FileInfo> GetSubListByNum(Names names, string num)
         {
             List<FileInfo> subs = new List<FileInfo>();
@@ -219,6 +305,12 @@ namespace SubRenamer.Models
             return subs;
         }
 
+        /// <summary>
+        /// 根据集号获取匹配的字幕文件列表（模糊匹配）
+        /// </summary>
+        /// <param name="names">文件名称管理器</param>
+        /// <param name="num">集号</param>
+        /// <returns>匹配的字幕文件列表</returns>
         internal static List<FileInfo> GetSubList(Names names, string num)
         {
             List<FileInfo> subs = new List<FileInfo>();
@@ -232,6 +324,12 @@ namespace SubRenamer.Models
             return subs;
         }
 
+        /// <summary>
+        /// 根据字典键获取匹配的字幕文件列表（正则模式）
+        /// </summary>
+        /// <param name="subDic">字幕文件字典</param>
+        /// <param name="key">匹配键</param>
+        /// <returns>匹配的字幕文件列表</returns>
         internal static List<FileInfo> GetSubList(Dictionary<FileInfo, string> subDic, string key)
         {
             List<FileInfo> subs = new List<FileInfo>();
@@ -245,6 +343,12 @@ namespace SubRenamer.Models
             return subs;
         }
 
+        /// <summary>
+        /// 判断字幕文件是否匹配指定集号
+        /// </summary>
+        /// <param name="sub">字幕文件</param>
+        /// <param name="num">集号</param>
+        /// <returns>是否匹配</returns>
         private static bool IsFit(FileInfo sub, string num)
         {
             string? subNum = GetEpisodeNumber(sub);
@@ -254,6 +358,7 @@ namespace SubRenamer.Models
                 {
                     return true;
                 }
+                // 尝试数值比较（处理如 "01" 和 "1" 的情况）
                 else if (double.TryParse(subNum, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out double d1) &&
          double.TryParse(num, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out double d2))
                 {
@@ -262,6 +367,7 @@ namespace SubRenamer.Models
             }
             else
             {
+                // 如果无法提取集号，尝试在文件名中查找集号
                 string name = sub.Name.Replace(sub.Extension, "");
                 name = Regex.Replace(name, regex, "");
                 if (IsFitNum(name, num))
@@ -273,6 +379,12 @@ namespace SubRenamer.Models
             return false;
         }
 
+        /// <summary>
+        /// 在文件名中查找集号（子串匹配）
+        /// </summary>
+        /// <param name="name">文件名（不含扩展名）</param>
+        /// <param name="num">集号</param>
+        /// <returns>是否匹配</returns>
         private static bool IsFitNum(string name, string num)
         {
             char[] na = name.ToCharArray();
@@ -296,6 +408,7 @@ namespace SubRenamer.Models
                         continue;
                     }
 
+                    // 确保集号后面不是数字（避免 "12" 匹配到 "123"）
                     if (i + j < na.Length)
                     {
                         if (na[i + j] >= '0' && na[i + j] <= '9')
@@ -309,6 +422,11 @@ namespace SubRenamer.Models
             return false;
         }
 
+        /// <summary>
+        /// 判断字符串是否可能是集号
+        /// </summary>
+        /// <param name="str">输入字符串</param>
+        /// <returns>是否可能是集号</returns>
         internal static bool IsLikelyEpisodeNumber(string str)
         {
             string str2 = ResolveEpisodeNumber(str);
@@ -326,6 +444,11 @@ namespace SubRenamer.Models
             return true;
         }
 
+        /// <summary>
+        /// 将文件名按分隔符分割（不含扩展名）
+        /// </summary>
+        /// <param name="file">文件信息</param>
+        /// <returns>分割后的片段列表</returns>
         internal static List<string> SplitFileNameWithoutExtension(FileInfo file)
         {
             var name = file.Name.Replace(file.Extension, "");
@@ -333,6 +456,12 @@ namespace SubRenamer.Models
             return strs;
         }
 
+        /// <summary>
+        /// 将文件名分割为片段（用于分组）
+        /// 考虑了各种分隔符和数字/字母边界
+        /// </summary>
+        /// <param name="file">文件信息</param>
+        /// <returns>分割后的片段列表</returns>
         internal static List<string> SplitFileNameForGrouping(FileInfo file)
         {
             var filename = file.Name.Replace(file.Extension, "");
@@ -343,6 +472,7 @@ namespace SubRenamer.Models
             {
                 char c = filename[i];
 
+                // 处理数字间的点（如 1.2 表示 1集2话）
                 if (c == '.' && current.Length > 0 && i + 1 < filename.Length)
                 {
                     bool prevIsDigit = char.IsDigit(current[current.Length - 1]);
@@ -357,6 +487,7 @@ namespace SubRenamer.Models
                     }
                 }
 
+                // 处理常见分隔符
                 if (c == ' ' || c == '.' || c == '_' || c == '-' ||
                     c == '[' || c == ']' || c == '(' || c == ')' ||
                     c == '{' || c == '}')
@@ -369,6 +500,7 @@ namespace SubRenamer.Models
                 }
                 else
                 {
+                    // 处理数字/字母边界
                     if (current.Length > 0)
                     {
                         bool lastIsDigit = char.IsDigit(current[current.Length - 1]);
@@ -392,15 +524,22 @@ namespace SubRenamer.Models
             return result;
         }
 
+        /// <summary>
+        /// 解析集号（去除前缀如 "EP"、"Episode"、"第"、"话" 等）
+        /// </summary>
+        /// <param name="str">输入字符串</param>
+        /// <returns>解析后的集号</returns>
         internal static string ResolveEpisodeNumber(string str)
         {
             string str2 = str;
+            // 去除 "Episode" 前缀
             while (str2.ToLower().Contains("Episode"))
             {
                 char[] p = { 'p', 'P' };
                 int index = str2.IndexOfAny(p);
                 str2 = str2.Substring(index + 1);
             }
+            // 去除 "ep" 前缀
             while (str2.ToLower().Contains("ep"))
             {
                 char[] p = { 'p', 'P' };
@@ -408,10 +547,16 @@ namespace SubRenamer.Models
                 str2 = str2.Substring(index + 1);
             }
 
+            // 去除集号前缀（如"第"、"話"、"话"、"集"）
             str2 = Regex.Replace(str2, regex_headAndTail, "");
             return str2;
         }
 
+        /// <summary>
+        /// 从文件名中提取集号
+        /// </summary>
+        /// <param name="video">文件信息</param>
+        /// <returns>提取的集号，失败返回 null</returns>
         internal static string? GetEpisodeNumber(FileInfo video)
         {
             string name = (string)video.Name.Clone();
@@ -420,6 +565,7 @@ namespace SubRenamer.Models
             foreach (string str in strs)
             {
                 string str2 = str;
+                // 去除 "ep" 前缀
                 while (str2.ToLower().Contains("ep"))
                 {
                     char[] p = { 'p', 'P' };
@@ -427,13 +573,16 @@ namespace SubRenamer.Models
                     str2 = str2.Substring(index + 1);
                 }
 
+                // 去除集号前缀
                 str2 = Regex.Replace(str2, regex_headAndTail, "");
 
+                // 尝试解析为浮点数
                 if (!float.TryParse(str2, out float f))
                 {
                     continue;
                 }
 
+                // 检查范围（0-1900）
                 if (f < 0 || f > 1900)
                 {
                     continue;
@@ -444,6 +593,11 @@ namespace SubRenamer.Models
             return null;
         }
 
+        /// <summary>
+        /// 将文件名按括号和空格分割
+        /// </summary>
+        /// <param name="name">文件名</param>
+        /// <returns>分割后的片段列表</returns>
         public static List<string> Split(string name)
         {
             List<string> result = new List<string>();
@@ -467,6 +621,11 @@ namespace SubRenamer.Models
             return result;
         }
 
+        /// <summary>
+        /// 将括号替换为空格
+        /// </summary>
+        /// <param name="name">输入字符串</param>
+        /// <returns>替换后的字符串</returns>
         private static string Replace(string name)
         {
             string s = name.Replace('[', ' ');
@@ -479,6 +638,13 @@ namespace SubRenamer.Models
             return s;
         }
 
+        /// <summary>
+        /// 查找匹配的括号位置
+        /// </summary>
+        /// <param name="ca">字符数组</param>
+        /// <param name="begin">开始位置</param>
+        /// <param name="left">左括号字符</param>
+        /// <returns>匹配的右括号位置</returns>
         private static int FindMatchingPos(char[] ca, int begin, char left)
         {
             char right;
@@ -502,7 +668,6 @@ namespace SubRenamer.Models
             int count = 0;
             for (int i = begin + 1; i < ca.Length; i++)
             {
-
                 if (ca[i] == right)
                 {
                     if (count == 0)
