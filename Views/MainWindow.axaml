@@ -55,6 +55,7 @@
     <Grid Grid.Row="2" Margin="8,0,8,8" ColumnDefinitions="*,Auto">
       <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="8">
         <Button Content="加载文件" Command="{Binding LoadFilesCommand}" IsDefault="True"/>
+        <!-- <Button Content="解析" Command="{Binding ResolveCommand}" IsVisible="{Binding !IsRegexMode}"/> -->
         <Button Content="开始重命名" Command="{Binding RenameCommand}" Background="#0078D7" Foreground="White"/>
         <Button Content="撤销" Command="{Binding UndoCommand}" IsEnabled="{Binding CanUndo}"/>
       </StackPanel>

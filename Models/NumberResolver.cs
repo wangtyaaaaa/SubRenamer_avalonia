@@ -1,3 +1,5 @@
+using System.Text.RegularExpressions;
+
 namespace SubRenamer.Models
 {
     /// <summary>
@@ -140,12 +142,12 @@ namespace SubRenamer.Models
         /// <typeparam name="T">VSFile 派生类型</typeparam>
         /// <param name="files">文件列表</param>
         /// <param name="min_match_rate">最小匹配度阈值</param>
-        internal static void ResolveGroupFileList<T>(List<T> files, double min_match_rate) where T : VSFile
+        internal static void ResolveVSFileListBYGroup<T>(List<T> files, double min_match_rate) where T : VSFile
         {
             List<VSFileGroup<T>> group = GroupVSFiles(files, min_match_rate);
             foreach (var item in group)
             {
-                ResolveFileList(item.FileList);
+                ResolveVSFileList(item.FileList);
             }
         }
 
@@ -246,7 +248,7 @@ namespace SubRenamer.Models
         /// <typeparam name="T">VSFile 派生类型</typeparam>
         /// <param name="files">文件列表</param>
         /// <returns>是否解析成功</returns>
-        internal static bool ResolveFileList<T>(List<T> files) where T : VSFile
+        internal static bool ResolveVSFileList<T>(List<T> files) where T : VSFile
         {
             if (files == null || files.Count == 0) return false;
 
@@ -503,6 +505,21 @@ namespace SubRenamer.Models
             bool overlapInS2 = !(a.s2 + a.len <= b.s2 || b.s2 + b.len <= a.s2);
 
             return overlapInS1 || overlapInS2;
+        }
+
+        /// <summary>
+        /// 使用正则表达式解析文件列表的集号
+        /// </summary>
+        /// <typeparam name="T">VSFile 派生类型</typeparam>
+        /// <param name="files">文件列表</param>
+        /// <param name="regex">正则表达式</param>
+        internal static void ResolveVSFileListBYRegex<T>(List<T> files, string regex) where T : VSFile
+        {
+            foreach (var file in files)
+            {
+                string num = Regex.Replace(file.File.Name, regex, "");
+                file.Num = num;
+            }
         }
     }
 }

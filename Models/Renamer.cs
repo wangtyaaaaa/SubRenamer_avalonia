@@ -19,93 +19,7 @@ namespace SubRenamer.Models
         /// <summary>
         /// 撤销操作字典，键为旧文件名，值为新文件名
         /// </summary>
-        private static readonly Dictionary<string, string> redo = [];
-
-        /// <summary>
-        /// 进度变更事件
-        /// </summary>
-        public static event Action<int, string>? ProgressChanged;
-
-        /// <summary>
-        /// 根据模式执行重命名操作
-        /// </summary>
-        /// <param name="names">文件名称管理器</param>
-        public static void Rename(Names names)
-        {
-            if (names.IsRegex)
-            {
-                Rename_Regex(names);
-            }
-            else if (names.Resolved)
-            {
-                Rename_Reslobered(names);
-            }
-            else
-            {
-                Rename(names, 0);
-            }
-        }
-
-        /// <summary>
-        /// 使用已解析集号进行重命名
-        /// </summary>
-        /// <param name="names">文件名称管理器</param>
-        private static void Rename_Reslobered(Names names)
-        {
-            int c = 0;
-            foreach (Video video in names.videos)
-            {
-                ProgressChanged?.Invoke(++c, video.File.Name);
-                if (video.Num != null && video.Num != "")
-                {
-                    List<FileInfo> subs = GetSubList(names, video.Num);
-                    RenameSubs(video.File, subs, null);
-                }
-            }
-        }
-
-        /// <summary>
-        /// 普通模式重命名（自动提取集号）
-        /// </summary>
-        /// <param name="names">文件名称管理器</param>
-        /// <param name="count">进度计数起始值</param>
-        public static void Rename(Names names, int count)
-        {
-            int c = count;
-            foreach (Video video in names.videos)
-            {
-                ProgressChanged?.Invoke(++c, video.File.Name);
-                string? num = GetEpisodeNumber(video.File);
-                if (num == null)
-                {
-                    continue;
-                }
-                List<FileInfo> subs = GetSubList(names, num);
-                RenameSubs(video.File, subs, null);
-            }
-            // 递归处理子目录
-            foreach (Names name in names.names)
-            {
-                Rename(name, c);
-            }
-        }
-
-        /// <summary>
-        /// 正则模式重命名
-        /// </summary>
-        /// <param name="names">文件名称管理器</param>
-        private static void Rename_Regex(Names names)
-        {
-            Dictionary<FileInfo, string> videoDic = GetDic(VSFile.FileListTOFileInfoList(names.videos), names.GetVideoReplasePattern());
-            Dictionary<FileInfo, string> subDic = GetDic(VSFile.FileListTOFileInfoList(names.subs), names.GetSubReplasePattern());
-            int c = 0;
-            foreach (FileInfo video in videoDic.Keys)
-            {
-                ProgressChanged?.Invoke(++c, video.Name);
-                List<FileInfo> subs = GetSubList(subDic, videoDic[video]);
-                RenameSubs(video, subs, null);
-            }
-        }
+        private static readonly Dictionary<string, string> Redo_Log = new Dictionary<string, string>();
 
         /// <summary>
         /// 重命名字幕文件
@@ -143,11 +57,11 @@ namespace SubRenamer.Models
         /// <param name="newname">新文件名</param>
         private static void SetRedoDic(string oldname, string newname)
         {
-            if (redo.ContainsKey(oldname))
+            if (Redo_Log.ContainsKey(oldname))
             {
-                _ = redo.Remove(oldname);
+                _ = Redo_Log.Remove(oldname);
             }
-            redo.Add(oldname, newname);
+            Redo_Log.Add(oldname, newname);
         }
 
         /// <summary>
@@ -155,7 +69,7 @@ namespace SubRenamer.Models
         /// </summary>
         public static void ClearRedoDic()
         {
-            redo.Clear();
+            Redo_Log.Clear();
         }
 
         /// <summary>
@@ -163,9 +77,9 @@ namespace SubRenamer.Models
         /// 将所有重命名的文件恢复到原来的名称
         /// </summary>
         /// <returns>是否撤销成功</returns>
-        public static bool Redo()
+        public static bool Revoke()
         {
-            Dictionary<string, string>.Enumerator e = redo.GetEnumerator();
+            Dictionary<string, string>.Enumerator e = Redo_Log.GetEnumerator();
             while (e.MoveNext())
             {
                 string old = e.Current.Key;
@@ -193,25 +107,7 @@ namespace SubRenamer.Models
         /// <returns>是否有可撤销操作</returns>
         public static bool IsRedoAvailabel()
         {
-            return redo.Count != 0;
-        }
-
-        /// <summary>
-        /// 根据正则模式提取文件名中的核心部分
-        /// </summary>
-        /// <param name="videos">文件列表</param>
-        /// <param name="p">正则替换模式</param>
-        /// <returns>文件信息到核心部分的字典</returns>
-        internal static Dictionary<FileInfo, string> GetDic(List<FileInfo> videos, string p)
-        {
-            Dictionary<FileInfo, string> dic = new Dictionary<FileInfo, string>();
-            foreach (FileInfo video in videos)
-            {
-                string name = video.Name;
-                string str = Regex.Replace(name, p, "");
-                dic.Add(video, str);
-            }
-            return dic;
+            return Redo_Log.Count != 0;
         }
 
         /// <summary>
@@ -290,19 +186,38 @@ namespace SubRenamer.Models
         }
 
         /// <summary>
-        /// 根据集号获取匹配的字幕文件列表（精确匹配）
+        /// 使用存储的集号来获取文件列表
         /// </summary>
-        /// <param name="names">文件名称管理器</param>
+        /// <param name="list">文件列表</param>
         /// <param name="num">集号</param>
-        /// <returns>匹配的字幕文件列表</returns>
-        internal static List<FileInfo> GetSubListByNum(Names names, string num)
+        /// <returns>匹配的文件列表</returns>
+        internal static List<T> GetSubListByNum<T>(List<T> list, string num) where T : VSFile
         {
-            List<FileInfo> subs = new List<FileInfo>();
-            foreach (Sub sub in names.subs)
+            List<T> result = new List<T>();
+            foreach (T file in list)
             {
-                if (sub.Num == num) subs.Add(sub.File);
+                if (file.Num == num) result.Add(file);
+                else if (file.Num != null && num != null && file.Num.Contains(".") && num.Contains("."))
+                {
+                    if (
+                        double.TryParse(
+                            file.Num,
+                            System.Globalization.NumberStyles.Any,
+                            System.Globalization.CultureInfo.InvariantCulture,
+                            out double d1)
+                        &&
+                        double.TryParse(
+                            num,
+                            System.Globalization.NumberStyles.Any,
+                            System.Globalization.CultureInfo.InvariantCulture,
+                            out double d2)
+                        )
+                    {
+                        if (d1 == d2) result.Add(file);
+                    }
+                }
             }
-            return subs;
+            return result;
         }
 
         /// <summary>
@@ -319,25 +234,6 @@ namespace SubRenamer.Models
                 if (IsFit(sub.File, num))
                 {
                     subs.Add(sub.File);
-                }
-            }
-            return subs;
-        }
-
-        /// <summary>
-        /// 根据字典键获取匹配的字幕文件列表（正则模式）
-        /// </summary>
-        /// <param name="subDic">字幕文件字典</param>
-        /// <param name="key">匹配键</param>
-        /// <returns>匹配的字幕文件列表</returns>
-        internal static List<FileInfo> GetSubList(Dictionary<FileInfo, string> subDic, string key)
-        {
-            List<FileInfo> subs = new List<FileInfo>();
-            foreach (FileInfo sub in subDic.Keys)
-            {
-                if (subDic[sub].Equals(key))
-                {
-                    subs.Add(sub);
                 }
             }
             return subs;
@@ -442,18 +338,6 @@ namespace SubRenamer.Models
             }
 
             return true;
-        }
-
-        /// <summary>
-        /// 将文件名按分隔符分割（不含扩展名）
-        /// </summary>
-        /// <param name="file">文件信息</param>
-        /// <returns>分割后的片段列表</returns>
-        internal static List<string> SplitFileNameWithoutExtension(FileInfo file)
-        {
-            var name = file.Name.Replace(file.Extension, "");
-            List<string> strs = Split(name);
-            return strs;
         }
 
         /// <summary>
@@ -577,7 +461,7 @@ namespace SubRenamer.Models
                 str2 = Regex.Replace(str2, regex_headAndTail, "");
 
                 // 尝试解析为浮点数
-                if (!float.TryParse(str2, out float f))
+                if (!double.TryParse(str2, out double f))
                 {
                     continue;
                 }
@@ -685,6 +569,40 @@ namespace SubRenamer.Models
                 }
             }
             throw new Exception("cannot find matching pos");
+        }
+
+        /// <summary>
+        /// 给所有视频匹配字幕，返回列表，列表最后是匹配不到视频的字幕
+        /// </summary>
+        /// <param name="allVideos">视频文件列表</param>
+        /// <param name="subs">字幕文件列表</param>
+        /// <returns>配对好的视频字幕组列表</returns>
+        internal static List<PairedVSFileGroup> GetPairedVSFileGroups(List<Video> allVideos, List<Sub> subs)
+        {
+            var result = new List<PairedVSFileGroup>();
+            var allSubs = new List<Sub>(subs);
+            foreach (var video in allVideos)
+            {
+                var group = new PairedVSFileGroup(video);
+                result.Add(group);
+                string? episodeNum = video.Num;
+                if (!string.IsNullOrEmpty(episodeNum))
+                {
+                    var matchedSubs = GetSubListByNum(allSubs, episodeNum);
+                    foreach (var sub in matchedSubs)
+                    {
+                        group.AddSub(sub);
+                        allSubs.Remove(sub);
+                    }
+                }
+            }
+            var endGroup = new PairedVSFileGroup(null);
+            result.Add(endGroup);
+            foreach (var sub in allSubs)
+            {
+                endGroup.AddSub(sub);
+            }
+            return result;
         }
     }
 }

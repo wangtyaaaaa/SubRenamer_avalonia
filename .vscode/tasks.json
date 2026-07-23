@@ -41,36 +41,41 @@
       "problemMatcher": "$msCompile"
     },
     {
-      "label": "publish-aot",
-      "detail": "NativeAOT 极限压缩单文件（需要 VS C++ 构建工具）",
-      "command": "dotnet",
-      "type": "process",
+      "label": "clean-aot-out",
+      "detail": "清理AOT发布目录",
+      "type": "shell",
+      "command": "Remove-Item",
       "args": [
-        "publish",
-        "${workspaceFolder}/SubRenamer.csproj",
-        "-c", "Publish",
-        "-r", "win-x64",
-        "--self-contained",
-        "-o", "${workspaceFolder}/publish/aot"
+        "${workspaceFolder}/publish/aot",
+        "-Recurse",
+        "-Force",
+        "-ErrorAction",
+        "SilentlyContinue"
       ],
-      "problemMatcher": "$msCompile",
-      "group": "build"
+      "problemMatcher": []
     },
     {
-      "label": "publish-trimmed",
-      "detail": "单文件裁边发布（无需 C++ 构建工具）",
+      "label": "publish-aot",
+      "detail": "NativeAOT 最小体积发布（多文件稳定版）",
       "command": "dotnet",
       "type": "process",
       "args": [
         "publish",
         "${workspaceFolder}/SubRenamer.csproj",
-        "-c", "PublishTrimmed",
-        "-r", "win-x64",
+        "-c",
+        "Publish",
+        "-r",
+        "win-x64",
         "--self-contained",
-        "-o", "${workspaceFolder}/publish/trimmed"
+        "-p:IncludeNativeLibrariesForSelfExtract=true",
+        "-o",
+        "${workspaceFolder}/publish/aot"
       ],
       "problemMatcher": "$msCompile",
-      "group": "build"
+      "group": "build",
+      "dependsOn": [
+        "clean-aot-out"
+      ]
     }
   ]
 }

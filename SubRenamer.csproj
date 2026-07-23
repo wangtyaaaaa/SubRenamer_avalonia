@@ -9,6 +9,7 @@
     <AssemblyName>SubRenamer</AssemblyName>
     <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
   </PropertyGroup>
 
   <ItemGroup>
@@ -18,73 +19,51 @@
     <PackageReference Include="Avalonia.Fonts.Inter" Version="11.2.3" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Compile Remove="Properties\**" />
-    <EmbeddedResource Remove="Properties\**" />
-    <None Remove="Properties\**" />
-  </ItemGroup>
-
-  <!-- 发布配置：单文件极限压缩（NativeAOT，需要VS C++构建工具） -->
   <PropertyGroup Condition="'$(Configuration)' == 'Publish'">
-    <!-- NativeAOT 本地编译，生成原生可执行文件（自动生成单文件） -->
+    <!-- NativeAOT 核心开关 -->
     <PublishAot>true</PublishAot>
-    <!-- 启用裁边，移除未使用的代码 -->
+    <SelfContained>true</SelfContained>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+  
+    <!-- 裁剪配置 -->
     <PublishTrimmed>true</PublishTrimmed>
-    <!-- 裁边详细程度 -->
+    <TrimMode>full</TrimMode>
     <TrimmerSingleWarn>true</TrimmerSingleWarn>
-    <!-- 启用 ILC 优化，优先体积 -->
+  
+    <!-- 体积优化：优先尺寸而非速度 -->
     <IlcOptimizationPreference>Size</IlcOptimizationPreference>
-    <!-- 禁用调试信息 -->
+    <IlcGenerateCompressedOutput>true</IlcGenerateCompressedOutput>
+  
+    <!-- 关闭调试信息 -->
     <DebugType>none</DebugType>
     <DebugSymbols>false</DebugSymbols>
-    <!-- 启用优化 -->
     <Optimize>true</Optimize>
-    <!-- 使用固定全球化模式（减少国际化数据） -->
+  
+    <!-- 全球化裁剪：如果你不需要多语言日期/货币格式化，开启 -->
     <InvariantGlobalization>true</InvariantGlobalization>
-    <!-- 禁用堆栈跟踪支持（减少大小） -->
+  
+    <!-- 关闭诊断、异常辅助信息 -->
     <StackTraceSupport>false</StackTraceSupport>
-    <!-- 移除未使用的异常处理 -->
     <IlcDisableExceptionMessages>true</IlcDisableExceptionMessages>
-    <!-- 内联策略 -->
-    <InlineMe>true</InlineMe>
-    <!-- 禁用反射回退 -->
-    <IlcReflectionSuppressionsFile>$(MSBuildProjectDirectory)\ReflectionSuppressions.xml</IlcReflectionSuppressionsFile>
-    <!-- 目标架构（Windows x64） -->
-    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
-    <!-- 发布目录 -->
-    <PublishDir>$(MSBuildProjectDirectory)\bin\Publish\</PublishDir>
-    <!-- 层次分析 -->
-    <IlcGenerateCompleteTypeMetadata>false</IlcGenerateCompleteTypeMetadata>
-    <!-- 禁用事件源 -->
     <EventSourceSupport>false</EventSourceSupport>
-    <!-- 禁用活动支持 -->
     <ActivityIdentificationSupport>false</ActivityIdentificationSupport>
-    <!-- 裁边程序集 -->
-    <TrimMode>partial</TrimMode>
+  
+    <!-- 反射元数据最小化（配合 ReflectionSuppressions.xml） -->
+    <IlcGenerateCompleteTypeMetadata>false</IlcGenerateCompleteTypeMetadata>
+    <InlineMe>true</InlineMe>
+    <IlcReflectionSuppressionsFile>$(MSBuildProjectDirectory)\ReflectionSuppressions.xml</IlcReflectionSuppressionsFile>
+  
+    <!-- Avalonia 专属瘦身（重要） -->
+    <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
+    <AvaloniaTrimNativeAssets>true</AvaloniaTrimNativeAssets>
+    <AvaloniaEnableHotReload>false</AvaloniaEnableHotReload>
+  
   </PropertyGroup>
 
-  <!-- 发布配置：单文件压缩（无需C++构建工具，兼容性更好） -->
-  <PropertyGroup Condition="'$(Configuration)' == 'PublishTrimmed'">
-    <!-- 单文件发布 -->
-    <PublishSingleFile>true</PublishSingleFile>
-    <!-- 启用裁边，移除未使用的代码 -->
-    <PublishTrimmed>true</PublishTrimmed>
-    <!-- 裁边模式（copy保留所有程序集） -->
-    <TrimMode>copy</TrimMode>
-    <!-- 禁用调试信息 -->
-    <DebugType>none</DebugType>
-    <DebugSymbols>false</DebugSymbols>
-    <!-- 启用优化 -->
-    <Optimize>true</Optimize>
-    <!-- 使用固定全球化模式 -->
-    <InvariantGlobalization>true</InvariantGlobalization>
-    <!-- 目标架构（Windows x64） -->
-    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
-    <!-- 发布目录 -->
-    <PublishDir>$(MSBuildProjectDirectory)\bin\PublishTrimmed\</PublishDir>
-  </PropertyGroup>
 
-  <!-- 保留Avalonia相关程序集不被裁边 -->
+
+
+  <!-- 保留 Avalonia 相关程序集不被裁剪 -->
   <ItemGroup Condition="'$(Configuration)' == 'PublishTrimmed' or '$(Configuration)' == 'Publish'">
     <TrimmerRootAssembly Include="Avalonia" />
     <TrimmerRootAssembly Include="Avalonia.Themes.Fluent" />

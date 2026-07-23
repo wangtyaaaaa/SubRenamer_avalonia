@@ -134,13 +134,7 @@ namespace SubRenamer.ViewModels
         public string VideoExts
         {
             get => _videoExts;
-            set
-            {
-                if (SetProperty(ref _videoExts, value))
-                {
-                    Extentions.SetExts(value, Extentions.VIDEO);
-                }
-            }
+            set => SetProperty(ref _videoExts, value);
         }
 
         private string _subtitleExts = "ass,ssa,sub,srt";
@@ -150,13 +144,7 @@ namespace SubRenamer.ViewModels
         public string SubtitleExts
         {
             get => _subtitleExts;
-            set
-            {
-                if (SetProperty(ref _subtitleExts, value))
-                {
-                    Extentions.SetExts(value, Extentions.SUB);
-                }
-            }
+            set => SetProperty(ref _subtitleExts, value);
         }
 
         private string _minMatchRate = "0.7";
@@ -332,6 +320,10 @@ namespace SubRenamer.ViewModels
         /// 转义正则表达式命令
         /// </summary>
         public ICommand EscapeRegexCommand { get; }
+        /// <summary>
+        /// 解析集号命令
+        /// </summary>
+        public ICommand ResolveCommand { get; }
 
         /// <summary>
         /// 构造函数，初始化所有命令
@@ -343,6 +335,7 @@ namespace SubRenamer.ViewModels
             UndoCommand = new RelayCommand(async () => await UndoAsync(), () => !IsBusy && CanUndo);
             BrowseFolderCommand = new RelayCommand(async () => await BrowseFolderAsync(), () => !IsBusy);
             EscapeRegexCommand = new RelayCommand(() => EscapeRegex(), () => !IsBusy);
+            ResolveCommand = new RelayCommand(async () => await ResolveAsync(), () => !IsBusy && _names != null && !_names.IsRegex && !_names.Resolved);
         }
 
         /// <summary>
@@ -354,17 +347,14 @@ namespace SubRenamer.ViewModels
             if (app?.ApplicationLifetime is not IClassicDesktopStyleApplicationLifetime desktop) return;
 
             var window = desktop.MainWindow;
-            // 2. 判断窗口和 StorageProvider 是否存在
             if (window?.StorageProvider == null) return;
 
-            // 3. 使用新的 StorageProvider API 打开文件夹选择器
             var folders = await window.StorageProvider.OpenFolderPickerAsync(new FolderPickerOpenOptions
             {
                 Title = "选择文件夹",
-                AllowMultiple = false // 不允许选择多个文件夹
+                AllowMultiple = false
             });
 
-            // 4. 判断用户是否选择了文件夹并获取路径
             if (folders.Count > 0)
             {
                 FolderPath = folders[0].TryGetLocalPath() ?? folders[0].Name;
@@ -399,12 +389,19 @@ namespace SubRenamer.ViewModels
             {
                 await Task.Run(() =>
                 {
+                    Extentions.SetExts(VideoExts, Extentions.VIDEO);
+                    Extentions.SetExts(SubtitleExts, Extentions.SUB);
+
                     var dInfo = new DirectoryInfo(FolderPath);
 
                     if (IsRegexMode)
                     {
                         _names = new Names(dInfo, VideoLeft, VideoRight, SubtitleLeft, SubtitleRight);
                         LoadRegexMode();
+                    }
+                    else if (_names != null && _names.Resolved)
+                    {
+                        LoadResolvedMode();
                     }
                     else
                     {
@@ -424,6 +421,7 @@ namespace SubRenamer.ViewModels
                 IsBusy = false;
                 UpdateCanUndo();
                 RenameCommand.RaiseCanExecuteChanged();
+                (ResolveCommand as RelayCommand)?.RaiseCanExecuteChanged();
             }
         }
 
@@ -434,46 +432,56 @@ namespace SubRenamer.ViewModels
         {
             if (_names == null) return;
 
-            NumberResolver.ResolveFileList(_names.videos);
+            NumberResolver.ResolveVSFileList(_names.videos);
 
             double.TryParse(MinMatchRate, out double rate);
-            NumberResolver.ResolveGroupFileList(_names.subs, rate);
+            NumberResolver.ResolveVSFileListBYGroup(_names.subs, rate);
 
-            var allSubs = VSFile.FileListTOFileInfoList(_names.subs);
+            var groups = Renamer.GetPairedVSFileGroups(_names.videos, _names.subs);
+            SetFileListUI(groups);
+        }
 
-            foreach (var video in _names.videos)
+        /// <summary>
+        /// 加载已解析模式（使用已解析的集号进行匹配）
+        /// </summary>
+        private void LoadResolvedMode()
+        {
+            if (_names == null) return;
+
+            List<FileInfo> allsubs = new List<FileInfo>();
+            foreach (VSFile var in _names.subs)
             {
+                allsubs.Add(var.File);
+            }
+
+            foreach (Video video in _names.videos)
+            {
+                string? num = video.Num;
+                if (string.IsNullOrEmpty(num))
+                    continue;
+
+                List<FileInfo> subs = Renamer.GetSubList(_names, num);
                 var group = new FileMatchGroup
                 {
                     VideoName = video.File.Name,
                     VideoFile = video.File
                 };
-
-                if (!string.IsNullOrEmpty(video.Num))
+                foreach (FileInfo sub in subs)
                 {
-                    var matchedSubs = Renamer.GetSubListByNum(_names, video.Num);
-                    if (matchedSubs.Count == 0)
-                    {
-                        matchedSubs = Renamer.GetSubList(_names, video.Num);
-                    }
-                    foreach (var sub in matchedSubs)
-                    {
-                        group.Subtitles.Add(new SubtitleItem { Name = sub.Name, File = sub, ParentGroup = group });
-                        allSubs.Remove(sub);
-                    }
+                    group.Subtitles.Add(new SubtitleItem { Name = sub.Name, File = sub, ParentGroup = group });
+                    allsubs.Remove(sub);
                 }
-
                 MatchGroups.Add(group);
             }
 
-            if (allSubs.Count > 0)
+            if (allsubs.Count > 0)
             {
                 var otherGroup = new FileMatchGroup
                 {
                     VideoName = "其他字幕文件",
                     IsOtherGroup = true
                 };
-                foreach (var sub in allSubs)
+                foreach (FileInfo sub in allsubs)
                 {
                     otherGroup.Subtitles.Add(new SubtitleItem { Name = sub.Name, File = sub, ParentGroup = otherGroup });
                 }
@@ -488,41 +496,83 @@ namespace SubRenamer.ViewModels
         {
             if (_names == null) return;
 
-            var allSubs = VSFile.FileListTOFileInfoList(_names.subs);
+            NumberResolver.ResolveVSFileListBYRegex(_names.videos, _names.GetVideoReplasePattern());
+            NumberResolver.ResolveVSFileListBYRegex(_names.subs, _names.GetSubReplasePattern());
 
-            var videoDic = Renamer.GetDic(VSFile.FileListTOFileInfoList(_names.videos), _names.GetVideoReplasePattern());
-            var subDic = Renamer.GetDic(VSFile.FileListTOFileInfoList(_names.subs), _names.GetSubReplasePattern());
+            var groups = Renamer.GetPairedVSFileGroups(_names.videos, _names.subs);
+            SetFileListUI(groups);
+        }
 
-            foreach (var video in videoDic.Keys)
+        /// <summary>
+        /// 将配对组转换为界面数据
+        /// </summary>
+        /// <param name="groups">配对组列表</param>
+        private void SetFileListUI(List<PairedVSFileGroup> groups)
+        {
+            foreach (var group in groups)
             {
-                var group = new FileMatchGroup
+                var video = group.Video;
+                var videoName = video != null ? video.File.Name : "其他字幕文件";
+                var videoFile = video?.File;
+
+                var matchGroup = new FileMatchGroup
                 {
-                    VideoName = video.Name,
-                    VideoFile = video
+                    VideoName = videoName,
+                    VideoFile = videoFile,
+                    IsOtherGroup = video == null
                 };
 
-                var subs = Renamer.GetSubList(subDic, videoDic[video]);
-                foreach (var sub in subs)
+                foreach (var sub in group.Subs)
                 {
-                    group.Subtitles.Add(new SubtitleItem { Name = sub.Name, File = sub, ParentGroup = group });
-                    allSubs.Remove(sub);
+                    matchGroup.Subtitles.Add(new SubtitleItem { Name = sub.File.Name, File = sub.File, ParentGroup = matchGroup });
                 }
 
-                MatchGroups.Add(group);
+                MatchGroups.Add(matchGroup);
+            }
+        }
+
+        /// <summary>
+        /// 解析集号（简单模式）
+        /// </summary>
+        private async Task ResolveAsync()
+        {
+            if (_names == null)
+            {
+                StatusMessage = "请先加载文件";
+                return;
             }
 
-            if (allSubs.Count > 0)
+            IsBusy = true;
+            StatusMessage = "正在解析集号...";
+
+            try
             {
-                var otherGroup = new FileMatchGroup
+                await Task.Run(() =>
                 {
-                    VideoName = "其他字幕文件",
-                    IsOtherGroup = true
-                };
-                foreach (var sub in allSubs)
+                    if (NumberResolver.Resolve(_names))
+                    {
+                        _names.Resolved = true;
+                    }
+                });
+
+                if (_names.Resolved)
                 {
-                    otherGroup.Subtitles.Add(new SubtitleItem { Name = sub.Name, File = sub, ParentGroup = otherGroup });
+                    await LoadFilesAsync();
+                    StatusMessage = "解析完成";
                 }
-                MatchGroups.Add(otherGroup);
+                else
+                {
+                    StatusMessage = "解析失败";
+                }
+            }
+            catch (Exception ex)
+            {
+                StatusMessage = $"解析失败: {ex.Message}";
+            }
+            finally
+            {
+                IsBusy = false;
+                (ResolveCommand as RelayCommand)?.RaiseCanExecuteChanged();
             }
         }
 
@@ -531,6 +581,12 @@ namespace SubRenamer.ViewModels
         /// </summary>
         private async Task RenameAsync()
         {
+            if (_names == null)
+            {
+                StatusMessage = "请先加载文件";
+                return;
+            }
+
             if (MatchGroups.Count == 0)
             {
                 StatusMessage = "没有可重命名的文件";
@@ -540,7 +596,7 @@ namespace SubRenamer.ViewModels
             IsBusy = true;
             StatusMessage = "正在重命名...";
             ProgressValue = 0;
-            ProgressMax = MatchGroups.Count(g => g.VideoFile != null);
+            ProgressMax = _names.GetVideoCount();
 
             try
             {
@@ -595,7 +651,7 @@ namespace SubRenamer.ViewModels
             {
                 await Task.Run(() =>
                 {
-                    Renamer.Redo();
+                    Renamer.Revoke();
                 });
 
                 StatusMessage = "撤销成功";

@@ -49,6 +49,19 @@ namespace SubRenamer.Views
         {
             InitializeComponent();
             DataContext = new MainViewModel();
+            KeyDown += OnWindowKeyDown;
+        }
+
+        /// <summary>
+        /// 窗口键盘按下事件，按Enter键时移除焦点
+        /// </summary>
+        private void OnWindowKeyDown(object? sender, KeyEventArgs e)
+        {
+            if (e.Key == Avalonia.Input.Key.Enter)
+            {
+                FocusManager?.ClearFocus();
+                e.Handled = true;
+            }
         }
 
         /// <summary>
