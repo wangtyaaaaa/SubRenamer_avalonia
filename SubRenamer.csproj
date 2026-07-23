@@ -24,4 +24,72 @@
     <None Remove="Properties\**" />
   </ItemGroup>
 
+  <!-- 发布配置：单文件极限压缩（NativeAOT，需要VS C++构建工具） -->
+  <PropertyGroup Condition="'$(Configuration)' == 'Publish'">
+    <!-- NativeAOT 本地编译，生成原生可执行文件（自动生成单文件） -->
+    <PublishAot>true</PublishAot>
+    <!-- 启用裁边，移除未使用的代码 -->
+    <PublishTrimmed>true</PublishTrimmed>
+    <!-- 裁边详细程度 -->
+    <TrimmerSingleWarn>true</TrimmerSingleWarn>
+    <!-- 启用 ILC 优化，优先体积 -->
+    <IlcOptimizationPreference>Size</IlcOptimizationPreference>
+    <!-- 禁用调试信息 -->
+    <DebugType>none</DebugType>
+    <DebugSymbols>false</DebugSymbols>
+    <!-- 启用优化 -->
+    <Optimize>true</Optimize>
+    <!-- 使用固定全球化模式（减少国际化数据） -->
+    <InvariantGlobalization>true</InvariantGlobalization>
+    <!-- 禁用堆栈跟踪支持（减少大小） -->
+    <StackTraceSupport>false</StackTraceSupport>
+    <!-- 移除未使用的异常处理 -->
+    <IlcDisableExceptionMessages>true</IlcDisableExceptionMessages>
+    <!-- 内联策略 -->
+    <InlineMe>true</InlineMe>
+    <!-- 禁用反射回退 -->
+    <IlcReflectionSuppressionsFile>$(MSBuildProjectDirectory)\ReflectionSuppressions.xml</IlcReflectionSuppressionsFile>
+    <!-- 目标架构（Windows x64） -->
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <!-- 发布目录 -->
+    <PublishDir>$(MSBuildProjectDirectory)\bin\Publish\</PublishDir>
+    <!-- 层次分析 -->
+    <IlcGenerateCompleteTypeMetadata>false</IlcGenerateCompleteTypeMetadata>
+    <!-- 禁用事件源 -->
+    <EventSourceSupport>false</EventSourceSupport>
+    <!-- 禁用活动支持 -->
+    <ActivityIdentificationSupport>false</ActivityIdentificationSupport>
+    <!-- 裁边程序集 -->
+    <TrimMode>partial</TrimMode>
+  </PropertyGroup>
+
+  <!-- 发布配置：单文件压缩（无需C++构建工具，兼容性更好） -->
+  <PropertyGroup Condition="'$(Configuration)' == 'PublishTrimmed'">
+    <!-- 单文件发布 -->
+    <PublishSingleFile>true</PublishSingleFile>
+    <!-- 启用裁边，移除未使用的代码 -->
+    <PublishTrimmed>true</PublishTrimmed>
+    <!-- 裁边模式（copy保留所有程序集） -->
+    <TrimMode>copy</TrimMode>
+    <!-- 禁用调试信息 -->
+    <DebugType>none</DebugType>
+    <DebugSymbols>false</DebugSymbols>
+    <!-- 启用优化 -->
+    <Optimize>true</Optimize>
+    <!-- 使用固定全球化模式 -->
+    <InvariantGlobalization>true</InvariantGlobalization>
+    <!-- 目标架构（Windows x64） -->
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <!-- 发布目录 -->
+    <PublishDir>$(MSBuildProjectDirectory)\bin\PublishTrimmed\</PublishDir>
+  </PropertyGroup>
+
+  <!-- 保留Avalonia相关程序集不被裁边 -->
+  <ItemGroup Condition="'$(Configuration)' == 'PublishTrimmed' or '$(Configuration)' == 'Publish'">
+    <TrimmerRootAssembly Include="Avalonia" />
+    <TrimmerRootAssembly Include="Avalonia.Themes.Fluent" />
+    <TrimmerRootAssembly Include="Avalonia.Fonts.Inter" />
+    <TrimmerRootAssembly Include="Avalonia.Desktop" />
+  </ItemGroup>
+
 </Project>

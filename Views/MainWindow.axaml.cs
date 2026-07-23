@@ -71,39 +71,13 @@ namespace SubRenamer.Views
         protected override void OnDataContextChanged(EventArgs e)
         {
             base.OnDataContextChanged(e);
+#if DEBUG
             if (DataContext is MainViewModel vm)
             {
-#if DEBUG
                 vm.SetFolderPath("c:\\aaa\\bbb");
-#elif RELEASE
-                vm.BrowseFolderCommand = new RelayCommand(async () => await BrowseFolderAsync(vm), () => true);
-#endif
             }
-        }
-
-        #if RELEASE
-        /// <summary>
-        /// 浏览文件夹（发布模式）
-        /// </summary>
-        /// <param name="vm">主视图模型</param>
-        private async System.Threading.Tasks.Task BrowseFolderAsync(MainViewModel vm)
-        {
-            var topLevel = GetTopLevel(this);
-            if (topLevel == null) return;
-
-            var result = await topLevel.StorageProvider.OpenFolderPickerAsync(new FolderPickerOpenOptions
-            {
-                Title = "选择文件夹",
-                AllowMultiple = false
-            });
-
-            if (result.Count > 0)
-            {
-                var path = result[0].Path.LocalPath;
-                vm.SetFolderPath(path);
-            }
-        }
 #endif
+        }
 
         /// <summary>
         /// 字幕项的鼠标按下事件（通过 DataTemplate 调用）

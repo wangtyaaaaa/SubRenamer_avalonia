@@ -1,6 +1,6 @@
 using System.Collections.ObjectModel;
 using System.Windows.Input;
-using Avalonia.Controls;
+using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Media;
 using Avalonia.Platform.Storage;
 using SubRenamer.Models;
@@ -325,10 +325,6 @@ namespace SubRenamer.ViewModels
         /// </summary>
         public RelayCommand UndoCommand { get; }
         /// <summary>
-        /// 解析集号命令
-        /// </summary>
-        public ICommand ResolveCommand { get; }
-        /// <summary>
         /// 浏览文件夹命令
         /// </summary>
         public ICommand BrowseFolderCommand { get; set; }
@@ -345,7 +341,6 @@ namespace SubRenamer.ViewModels
             LoadFilesCommand = new RelayCommand(async () => await LoadFilesAsync(), () => !IsBusy);
             RenameCommand = new RelayCommand(async () => await RenameAsync(), () => !IsBusy && MatchGroups.Any(g => g.Subtitles.Any()));
             UndoCommand = new RelayCommand(async () => await UndoAsync(), () => !IsBusy && CanUndo);
-            ResolveCommand = new RelayCommand(async () => await ResolveAsync(), () => !IsBusy);
             BrowseFolderCommand = new RelayCommand(async () => await BrowseFolderAsync(), () => !IsBusy);
             EscapeRegexCommand = new RelayCommand(() => EscapeRegex(), () => !IsBusy);
         }
@@ -356,7 +351,7 @@ namespace SubRenamer.ViewModels
         private async Task BrowseFolderAsync()
         {
             var app = Avalonia.Application.Current;
-            if (app?.ApplicationLifetime is not Avalonia.Controls.ApplicationLifetimes.IClassicDesktopStyleApplicationLifetime desktop) return;
+            if (app?.ApplicationLifetime is not IClassicDesktopStyleApplicationLifetime desktop) return;
 
             var window = desktop.MainWindow;
             // 2. 判断窗口和 StorageProvider 是否存在
@@ -614,96 +609,6 @@ namespace SubRenamer.ViewModels
             {
                 IsBusy = false;
                 UpdateCanUndo();
-            }
-        }
-
-        /// <summary>
-        /// 异步执行集号解析操作
-        /// </summary>
-        private async Task ResolveAsync()
-        {
-            if (_names == null)
-            {
-                StatusMessage = "请先加载文件";
-                return;
-            }
-
-            IsBusy = true;
-            StatusMessage = "正在解析集号...";
-
-            try
-            {
-                await Task.Run(() =>
-                {
-                    if (NumberResolver.Resolve(_names))
-                    {
-                        _names.Resolved = true;
-                    }
-                });
-
-                if (_names.Resolved)
-                {
-                    MatchGroups.Clear();
-                    LoadResolvedMode();
-                    StatusMessage = "集号解析成功";
-                }
-                else
-                {
-                    StatusMessage = "集号解析失败";
-                }
-            }
-            catch (Exception ex)
-            {
-                StatusMessage = $"解析失败: {ex.Message}";
-            }
-            finally
-            {
-                IsBusy = false;
-            }
-        }
-
-        /// <summary>
-        /// 加载解析模式（使用已解析的集号匹配）
-        /// </summary>
-        private void LoadResolvedMode()
-        {
-            if (_names == null) return;
-
-            var allSubs = VSFile.FileListTOFileInfoList(_names.subs);
-
-            foreach (var video in _names.videos)
-            {
-                if (string.IsNullOrEmpty(video.Num))
-                    continue;
-
-                var group = new FileMatchGroup
-                {
-                    VideoName = video.File.Name,
-                    VideoFile = video.File
-                };
-
-                var subs = Renamer.GetSubList(_names, video.Num);
-                foreach (var sub in subs)
-                {
-                    group.Subtitles.Add(new SubtitleItem { Name = sub.Name, File = sub, ParentGroup = group });
-                    allSubs.Remove(sub);
-                }
-
-                MatchGroups.Add(group);
-            }
-
-            if (allSubs.Count > 0)
-            {
-                var otherGroup = new FileMatchGroup
-                {
-                    VideoName = "其他字幕文件",
-                    IsOtherGroup = true
-                };
-                foreach (var sub in allSubs)
-                {
-                    otherGroup.Subtitles.Add(new SubtitleItem { Name = sub.Name, File = sub, ParentGroup = otherGroup });
-                }
-                MatchGroups.Add(otherGroup);
             }
         }
 

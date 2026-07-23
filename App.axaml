@@ -5,7 +5,7 @@
   <Application.Resources>
     <converters:BoolToColorConverter x:Key="BoolToColorConverter"/>
     <converters:BoolToHighlightBrushConverter x:Key="BoolToHighlightBrushConverter"/>
-    <converters:BoolToOpacityConverter x:Key="BoolToOpacityConverter"/>
+    <converters:ValidToBackgroundBrushConverter x:Key="ValidToBackgroundBrushConverter"/>
   </Application.Resources>
   <Application.Styles>
     <FluentTheme />

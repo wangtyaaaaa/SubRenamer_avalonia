@@ -1,7 +1,6 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="using:SubRenamer.ViewModels"
-        xmlns:c="using:SubRenamer.Converters"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         mc:Ignorable="d" d:DesignWidth="500" d:DesignHeight="500"
@@ -9,13 +8,6 @@
         x:DataType="vm:MainViewModel"
         Title="SubRenamer - 字幕重命名工具"
         Width="500" Height="500" MinHeight="500" MinWidth="500">
-
-  <Window.Resources>
-    <c:BoolToColorConverter x:Key="BoolToColorConverter"/>
-    <c:BoolToHighlightBrushConverter x:Key="BoolToHighlightBrushConverter"/>
-    <c:BoolToOpacityConverter x:Key="BoolToOpacityConverter"/>
-    <c:ValidToBackgroundBrushConverter x:Key="ValidToBackgroundBrushConverter"/>
-  </Window.Resources>
 
   <Design.DataContext>
     <vm:MainViewModel/>

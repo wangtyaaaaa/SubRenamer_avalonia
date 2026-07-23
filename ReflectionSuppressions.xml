@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Suppressions xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+  <!-- Avalonia 需要的反射支持 -->
+  <Suppression Assembly="Avalonia.Themes.Fluent" Type="*" />
+  <Suppression Assembly="Avalonia.Controls" Type="*" />
+  <Suppression Assembly="Avalonia.Base" Type="*" />
+  <Suppression Assembly="Avalonia.Interactivity" Type="*" />
+  <Suppression Assembly="Avalonia.Input" Type="*" />
+  <Suppression Assembly="Avalonia.Layout" Type="*" />
+  <Suppression Assembly="Avalonia.Media" Type="*" />
+  <Suppression Assembly="Avalonia.Rendering" Type="*" />
+  <Suppression Assembly="Avalonia.Visuals" Type="*" />
+  <Suppression Assembly="Avalonia.Styling" Type="*" />
+</Suppressions>
