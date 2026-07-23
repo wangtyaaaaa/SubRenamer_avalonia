@@ -16,6 +16,8 @@ namespace SubRenamer.Models
         /// 集号前缀的正则表达式（如"第"、"話"、"话"、"集"）
         /// </summary>
         private static readonly string regex_headAndTail = "第|話|话|集";
+        private static readonly string regex_episode = @"(?i)episode";
+        private static readonly string regex_ep = @"(?i)ep";
         /// <summary>
         /// 撤销操作字典，键为旧文件名，值为新文件名
         /// </summary>
@@ -117,16 +119,14 @@ namespace SubRenamer.Models
         /// <returns>不含扩展名的完整路径</returns>
         private static string GetFullNameWithOutExtension(FileInfo video)
         {
-            char[] cs = video.FullName.ToArray();
-            for (int i = cs.Length - 1; i >= 0; i--)
+            for (int i = video.FullName.Length - 1; i >= 0; i--)
             {
-                if (cs[i] == '.')
+                if (video.FullName[i] == '.')
                 {
-                    return new string(cs).Substring(0, i);
+                    return video.FullName.Substring(0, i);
                 }
             }
-            string? str = cs.ToString();
-            return str ?? "";
+            return video.FullName;
         }
 
         /// <summary>
@@ -415,25 +415,12 @@ namespace SubRenamer.Models
         /// <returns>解析后的集号</returns>
         internal static string ResolveEpisodeNumber(string str)
         {
-            string str2 = str;
-            // 去除 "Episode" 前缀
-            while (str2.ToLower().Contains("Episode"))
-            {
-                char[] p = { 'p', 'P' };
-                int index = str2.IndexOfAny(p);
-                str2 = str2.Substring(index + 1);
-            }
-            // 去除 "ep" 前缀
-            while (str2.ToLower().Contains("ep"))
-            {
-                char[] p = { 'p', 'P' };
-                int index = str2.IndexOfAny(p);
-                str2 = str2.Substring(index + 1);
-            }
-
+            // 去除 Episode/ep 前缀（大小写不敏感）
+            string result = Regex.Replace(str, regex_episode, "");
+            result = Regex.Replace(result, regex_ep, "");
             // 去除集号前缀（如"第"、"話"、"话"、"集"）
-            str2 = Regex.Replace(str2, regex_headAndTail, "");
-            return str2;
+            result = Regex.Replace(result, regex_headAndTail, "");
+            return result;
         }
 
         /// <summary>
@@ -448,15 +435,8 @@ namespace SubRenamer.Models
             List<string> strs = Split(name);
             foreach (string str in strs)
             {
-                string str2 = str;
-                // 去除 "ep" 前缀
-                while (str2.ToLower().Contains("ep"))
-                {
-                    char[] p = { 'p', 'P' };
-                    int index = str2.IndexOfAny(p);
-                    str2 = str2.Substring(index + 1);
-                }
-
+                // 去除 ep 前缀（大小写不敏感）
+                string str2 = Regex.Replace(str, regex_ep, "");
                 // 去除集号前缀
                 str2 = Regex.Replace(str2, regex_headAndTail, "");
 
