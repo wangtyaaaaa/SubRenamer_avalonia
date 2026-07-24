@@ -20,10 +20,15 @@
   </ItemGroup>
 
   <PropertyGroup Condition="'$(Configuration)' == 'Publish'">
-    <!-- NativeAOT 核心开关 -->
-    <PublishAot>true</PublishAot>
+    <!-- NativeAOT 核心开关（注释掉，用 Single File 模式） -->
+    <!-- <PublishAot>true</PublishAot> -->
     <SelfContained>true</SelfContained>
     <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+  
+    <!-- Single File 模式：将所有托管代码打包进一个 exe -->
+    <PublishSingleFile>true</PublishSingleFile>
+    <SelfContained>true</SelfContained>
+    <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
   
     <!-- 裁剪配置 -->
     <PublishTrimmed>true</PublishTrimmed>
@@ -39,7 +44,7 @@
     <DebugSymbols>false</DebugSymbols>
     <Optimize>true</Optimize>
   
-    <!-- 全球化裁剪：如果你不需要多语言日期/货币格式化，开启 -->
+    <!-- 全球化裁剪 -->
     <InvariantGlobalization>true</InvariantGlobalization>
   
     <!-- 关闭诊断、异常辅助信息 -->
@@ -53,10 +58,13 @@
     <InlineMe>true</InlineMe>
     <IlcReflectionSuppressionsFile>$(MSBuildProjectDirectory)\ReflectionSuppressions.xml</IlcReflectionSuppressionsFile>
   
-    <!-- Avalonia 专属瘦身（重要） -->
+    <!-- Avalonia 专属瘦身 -->
     <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
     <AvaloniaTrimNativeAssets>true</AvaloniaTrimNativeAssets>
     <AvaloniaEnableHotReload>false</AvaloniaEnableHotReload>
+  
+    <!-- 输出到 publish\SubRenamer 子目录 -->
+    <PublishDir>$(MSBuildProjectDirectory)\publish\SubRenamer\</PublishDir>
   
   </PropertyGroup>
 
@@ -70,5 +78,23 @@
     <TrimmerRootAssembly Include="Avalonia.Fonts.Inter" />
     <TrimmerRootAssembly Include="Avalonia.Desktop" />
   </ItemGroup>
+
+  <!-- Publish 后：清理旧文件 + 删除冗余文件 + 打包 zip -->
+  <Target Name="CleanAndZipPublish" AfterTargets="Publish" Condition="'$(Configuration)' == 'Publish'">
+    <PropertyGroup>
+      <FinalZipPath>$(MSBuildProjectDirectory)\publish\SubRenamer.zip</FinalZipPath>
+    </PropertyGroup>
+
+    <!-- 清理旧的 zip 文件 -->
+    <Delete Files="$(FinalZipPath)" />
+    <Message Text="已清理旧的压缩包" Importance="high" />
+
+    <!-- 打包为 zip -->
+    <ZipDirectory SourceDirectory="$(PublishDir)"
+                  DestinationFile="$(FinalZipPath)"
+                  Overwrite="true" />
+
+    <Message Text="发布完成！$(FinalZipPath)" Importance="high" />
+  </Target>
 
 </Project>

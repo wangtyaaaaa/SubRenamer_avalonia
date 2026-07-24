@@ -18,18 +18,6 @@
       }
     },
     {
-      "label": "publish",
-      "command": "dotnet",
-      "type": "process",
-      "args": [
-        "publish",
-        "${workspaceFolder}/SubRenamer.csproj",
-        "/property:GenerateFullPaths=true",
-        "/consoleloggerparameters:NoSummary"
-      ],
-      "problemMatcher": "$msCompile"
-    },
-    {
       "label": "watch",
       "command": "dotnet",
       "type": "process",
@@ -41,22 +29,8 @@
       "problemMatcher": "$msCompile"
     },
     {
-      "label": "clean-aot-out",
-      "detail": "清理AOT发布目录",
-      "type": "shell",
-      "command": "Remove-Item",
-      "args": [
-        "${workspaceFolder}/publish/aot",
-        "-Recurse",
-        "-Force",
-        "-ErrorAction",
-        "SilentlyContinue"
-      ],
-      "problemMatcher": []
-    },
-    {
-      "label": "publish-aot",
-      "detail": "NativeAOT 最小体积发布（多文件稳定版）",
+      "label": "publish",
+      "detail": "发布程序包并打包zip",
       "command": "dotnet",
       "type": "process",
       "args": [
@@ -65,17 +39,10 @@
         "-c",
         "Publish",
         "-r",
-        "win-x64",
-        "--self-contained",
-        "-p:IncludeNativeLibrariesForSelfExtract=true",
-        "-o",
-        "${workspaceFolder}/publish/aot"
+        "win-x64"
       ],
       "problemMatcher": "$msCompile",
-      "group": "build",
-      "dependsOn": [
-        "clean-aot-out"
-      ]
+      "group": "build"
     }
   ]
 }
