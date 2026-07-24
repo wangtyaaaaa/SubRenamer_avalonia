@@ -756,11 +756,12 @@ namespace SubRenamer.ViewModels
         /// 设置当前拖拽悬停的组
         /// </summary>
         /// <param name="group">悬停的组，null表示没有悬停</param>
-        public void SetDragOverGroup(FileMatchGroup? group)
+        /// <param name="sourceGroup">拖拽源组，若为同一组则不高亮</param>
+        public void SetDragOverGroup(FileMatchGroup? group, FileMatchGroup? sourceGroup)
         {
             foreach (var g in MatchGroups)
             {
-                g.IsDragOver = (g == group);
+                g.IsDragOver = (g == group && g != sourceGroup);
             }
         }
 

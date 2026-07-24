@@ -6,6 +6,7 @@ using Avalonia.Media;
 using Avalonia.Platform.Storage;
 using Avalonia.VisualTree;
 using SubRenamer.ViewModels;
+using System.Timers;
 
 namespace SubRenamer.Views
 {
@@ -42,6 +43,14 @@ namespace SubRenamer.Views
         /// 拖拽阈值（超过此距离才认为是拖拽操作）
         /// </summary>
         private const double DragThreshold = 4.0;
+        /// <summary>
+        /// 自动滚动定时器
+        /// </summary>
+        private System.Timers.Timer? _autoScrollTimer;
+        /// <summary>
+        /// 当前鼠标位置（用于定时器滚动）
+        /// </summary>
+        private Point _currentMousePos;
 
         /// <summary>
         /// 构造函数
@@ -139,18 +148,88 @@ namespace SubRenamer.Views
                 _isDragging = true;
                 _draggingSubtitle.IsDragging = true;
                 CreateDragGhost();
+                StartAutoScrollTimer();
             }
 
             if (_isDragging)
             {
+                // 更新当前鼠标位置（供定时器使用）
+                _currentMousePos = currentPos;
                 // 更新幽灵控件位置
                 UpdateDragGhostPosition(currentPos);
                 // 查找鼠标下方的目标组
                 var hoverGroup = FindGroupUnderMouse(currentPos);
                 if (DataContext is MainViewModel vm)
                 {
-                    vm.SetDragOverGroup(hoverGroup);
+                    vm.SetDragOverGroup(hoverGroup, _draggingSourceGroup);
                 }
+            }
+        }
+
+        /// <summary>
+        /// 开始自动滚动定时器（鼠标静止时持续滚动）
+        /// </summary>
+        private void StartAutoScrollTimer()
+        {
+            _autoScrollTimer = new System.Timers.Timer(8);
+            _autoScrollTimer.Elapsed += AutoScrollTimer_Elapsed;
+            _autoScrollTimer.Start();
+        }
+
+        /// <summary>
+        /// 停止自动滚动定时器
+        /// </summary>
+        private void StopAutoScrollTimer()
+        {
+            _autoScrollTimer?.Stop();
+            _autoScrollTimer?.Dispose();
+            _autoScrollTimer = null;
+        }
+
+        /// <summary>
+        /// 定时器触发时执行自动滚动
+        /// </summary>
+        private void AutoScrollTimer_Elapsed(object? sender, ElapsedEventArgs e)
+        {
+            Avalonia.Threading.Dispatcher.UIThread.Invoke(() =>
+            {
+                if (_isDragging)
+                {
+                    PerformAutoScroll(_currentMousePos);
+                }
+            });
+        }
+
+        /// <summary>
+        /// 执行自动滚动（核心逻辑）
+        /// 当鼠标贴近边缘时自动滚动
+        /// </summary>
+        /// <param name="mousePos">鼠标位置</param>
+        private void PerformAutoScroll(Point mousePos)
+        {
+            if (FileList == null) return;
+
+            var scrollViewer = FileList.FindAncestorOfType<ScrollViewer>();
+            if (scrollViewer == null) return;
+
+            var scrollBounds = scrollViewer.Bounds;
+            const double edgeThreshold = 20;
+            const double scrollSpeed = 2;
+
+            double delta = 0;
+
+            if (mousePos.Y < scrollBounds.Y + edgeThreshold)
+            {
+                delta = -scrollSpeed;
+            }
+            else if (mousePos.Y > scrollBounds.Y + scrollBounds.Height - edgeThreshold)
+            {
+                delta = scrollSpeed;
+            }
+
+            if (delta != 0)
+            {
+                scrollViewer.Offset = new Vector(scrollViewer.Offset.X, scrollViewer.Offset.Y + delta);
             }
         }
 
@@ -272,6 +351,9 @@ namespace SubRenamer.Views
                     parent.Children.Remove(_dragGhostCanvas);
                 }
             }
+
+            // 停止自动滚动定时器
+            StopAutoScrollTimer();
 
             // 重置拖拽状态
             _draggingGhost = null;
