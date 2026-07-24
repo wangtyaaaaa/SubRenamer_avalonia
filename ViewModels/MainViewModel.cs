@@ -371,6 +371,18 @@ namespace SubRenamer.ViewModels
         }
 
         /// <summary>
+        /// 从外部拖入文件夹后调用：重置状态并加载新路径
+        /// </summary>
+        public async Task LoadFilesFromExternalAsync()
+        {
+            // 拖入的是新路径，重置已解析状态
+            _names = null;
+            // Renamer.ClearRedoDic();
+            // UpdateCanUndo();
+            await LoadFilesAsync();
+        }
+
+        /// <summary>
         /// 异步加载文件列表
         /// </summary>
         private async Task LoadFilesAsync()

@@ -109,7 +109,7 @@ namespace SubRenamer.Models
         /// <returns>是否有可撤销操作</returns>
         public static bool IsRedoAvailabel()
         {
-            return Redo_Log.Count != 0;
+            return Redo_Log.Count > 0;
         }
 
         /// <summary>
@@ -197,7 +197,7 @@ namespace SubRenamer.Models
             foreach (T file in list)
             {
                 if (file.Num == num) result.Add(file);
-                else if (file.Num != null && num != null && file.Num.Contains(".") && num.Contains("."))
+                else if (file.Num?.Contains(".") == num?.Contains("."))
                 {
                     if (
                         double.TryParse(
@@ -435,24 +435,28 @@ namespace SubRenamer.Models
             List<string> strs = Split(name);
             foreach (string str in strs)
             {
-                // 去除 ep 前缀（大小写不敏感）
-                string str2 = Regex.Replace(str, regex_ep, "");
-                // 去除集号前缀
+                string str2 = str;
+                while (str2.ToLower().Contains("ep"))
+                {
+                    char[] p = { 'p', 'P' };
+                    int index = str2.IndexOfAny(p);
+                    str2 = str2.Substring(index + 1);
+                }
+
                 str2 = Regex.Replace(str2, regex_headAndTail, "");
 
-                // 尝试解析为浮点数
                 if (!double.TryParse(str2, out double f))
                 {
                     continue;
                 }
 
-                // 检查范围（0-1900）
                 if (f < 0 || f > 1900)
                 {
                     continue;
                 }
 
                 return str2;
+
             }
             return null;
         }

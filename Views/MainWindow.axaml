@@ -13,7 +13,12 @@
     <vm:MainViewModel/>
   </Design.DataContext>
 
-  <Grid RowDefinitions="Auto,Auto,Auto,*,Auto">
+  <Grid RowDefinitions="Auto,Auto,Auto,*,Auto"
+        DragDrop.AllowDrop="True"
+        DragDrop.DragEnter="OnWindowDragEnter"
+        DragDrop.DragOver="OnWindowDragOver"
+        DragDrop.DragLeave="OnWindowDragLeave"
+        DragDrop.Drop="OnWindowDrop">
     <!-- 路径选择 -->
     <Grid Grid.Row="0" Margin="8" ColumnDefinitions="*,Auto">
       <TextBox Grid.Column="0" Text="{Binding FolderPath}" Watermark="请输入或选择文件夹路径"/>

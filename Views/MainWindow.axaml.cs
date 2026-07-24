@@ -3,6 +3,7 @@ using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Media;
+using Avalonia.Platform.Storage;
 using Avalonia.VisualTree;
 using SubRenamer.ViewModels;
 
@@ -279,6 +280,82 @@ namespace SubRenamer.Views
             _draggingSourceGroup = null;
             _isDragging = false;
         }
+
+        #region 外部文件夹拖入
+
+        /// <summary>
+        /// 外部拖拽进入窗口（来自系统资源管理器）
+        /// </summary>
+        private void OnWindowDragEnter(object? sender, DragEventArgs e)
+        {
+            if (TryGetExternalFolderPath(e, out _))
+            {
+                e.DragEffects = DragDropEffects.Copy;
+            }
+            else
+            {
+                e.DragEffects = DragDropEffects.None;
+            }
+        }
+
+        /// <summary>
+        /// 外部拖拽在窗口上移动
+        /// </summary>
+        private void OnWindowDragOver(object? sender, DragEventArgs e)
+        {
+            if (TryGetExternalFolderPath(e, out _))
+            {
+                e.DragEffects = DragDropEffects.Copy;
+            }
+            else
+            {
+                e.DragEffects = DragDropEffects.None;
+            }
+        }
+
+        /// <summary>
+        /// 外部拖拽离开窗口
+        /// </summary>
+        private void OnWindowDragLeave(object? sender, DragEventArgs e)
+        {
+        }
+
+        /// <summary>
+        /// 外部拖拽释放到窗口：取第一个文件夹路径，写入 FolderPath 并触发加载
+        /// </summary>
+        private async void OnWindowDrop(object? sender, DragEventArgs e)
+        {
+            if (!TryGetExternalFolderPath(e, out var path) || path == null) return;
+            if (DataContext is not MainViewModel vm) return;
+
+            vm.FolderPath = path;
+            await vm.LoadFilesFromExternalAsync();
+        }
+
+        /// <summary>
+        /// 判断拖入数据中是否包含文件夹路径（含则返回第一个有效路径）
+        /// </summary>
+        private static bool TryGetExternalFolderPath(DragEventArgs e, out string? path)
+        {
+            path = null;
+            if (!e.Data.Contains(DataFormats.Files)) return false;
+            var files = e.Data.GetFiles();
+            if (files == null) return false;
+
+            foreach (var item in files)
+            {
+                var localPath = item.TryGetLocalPath();
+                if (string.IsNullOrEmpty(localPath)) continue;
+                if (System.IO.Directory.Exists(localPath))
+                {
+                    path = localPath;
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        #endregion
 
 
     }

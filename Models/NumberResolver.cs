@@ -135,6 +135,16 @@ namespace SubRenamer.Models
             return result;
         }
 
+        private static bool HeadSequenceEqual(List<int> pos1, List<int> pos2)
+        {
+            int count = Math.Min(pos1.Count, pos2.Count);
+            for (int i = 0; i < count; i++)
+            {
+                if (pos1[i] != pos2[i]) return false;
+            }
+            return true;
+        }
+
         /// <summary>
         /// 分组解析文件列表的集号
         /// 先将相似文件名分组，再对每组分别解析集号
@@ -198,7 +208,7 @@ namespace SubRenamer.Models
 
                     // 先检查分割片段数量是否相近
                     int __a = group_head_splited_name.Count - curr_splited_name.Count;
-                    if (__a < 2 && __a > -2)
+                    if (__a < 4 && __a > -4)
                     {
                         double total_match_rate = 0;
                         for (int col = 0; col < curr_splited_name.Count; col++)
@@ -217,7 +227,7 @@ namespace SubRenamer.Models
                         {
                             var _pos1 = GetLikelyEpNumPos(curr_splited_name);
                             var _pos2 = _group.LikelyEpNumPos;
-                            if (_pos1.SequenceEqual(_pos2) && total_match_rate > match_group_rate)
+                            if (HeadSequenceEqual(_pos1, _pos2) && total_match_rate > match_group_rate)
                             {
                                 match_group_rate = total_match_rate;
                                 match_group_num = g_num;
@@ -253,7 +263,7 @@ namespace SubRenamer.Models
             if (files == null || files.Count == 0) return false;
 
             // 单个文件直接提取集号
-            if (files.Count <= 1)
+            if (files.Count <= 3)
             {
                 foreach (var item in files)
                 {
