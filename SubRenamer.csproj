@@ -19,6 +19,14 @@
     <PackageReference Include="Avalonia.Fonts.Inter" Version="11.2.3" />
   </ItemGroup>
 
+  <!-- ✅ 新增：确保许可证文件始终复制到输出目录和发布目录 -->
+  <ItemGroup>
+    <None Include="THIRD-PARTY-NOTICES.txt">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+    </None>
+  </ItemGroup>
+
   <PropertyGroup Condition="'$(Configuration)' == 'Publish'">
     <!-- NativeAOT 核心开关（注释掉，用 Single File 模式） -->
     <!-- <PublishAot>true</PublishAot> -->
@@ -82,8 +90,12 @@
   <!-- Publish 后：清理旧文件 + 删除冗余文件 + 打包 zip -->
   <Target Name="CleanAndZipPublish" AfterTargets="Publish" Condition="'$(Configuration)' == 'Publish'">
     <PropertyGroup>
-      <FinalZipPath>$(MSBuildProjectDirectory)\publish\SubRenamer.zip</FinalZipPath>
+      <FinalZipPath>$(MSBuildProjectDirectory)\publish\SubRenamer_avalonia.zip</FinalZipPath>
     </PropertyGroup>
+
+    <!-- 校验许可证文件是否存在于发布目录 -->
+    <Error Condition="!Exists('$(PublishDir)THIRD-PARTY-NOTICES.txt')" 
+           Text=" THIRD-PARTY-NOTICES.txt 未找到于 $(PublishDir)，请确认文件已添加到项目根目录" />
 
     <!-- 清理旧的 zip 文件 -->
     <Delete Files="$(FinalZipPath)" />

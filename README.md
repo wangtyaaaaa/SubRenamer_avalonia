@@ -34,4 +34,4 @@ Windows Registry Editor Version 5.00
 
 License
 ------------------------------------------------------------
-NO licesnse , every one can use it in any way
+NO licesnse
