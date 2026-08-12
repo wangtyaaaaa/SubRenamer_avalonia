@@ -348,7 +348,14 @@ namespace SubRenamer.Models
         /// <returns>分割后的片段列表</returns>
         internal static List<string> SplitFileNameForGrouping(FileInfo file)
         {
-            var filename = file.Name.Replace(file.Extension, "");
+            // var filename = file.Name.Replace(file.Extension, "");
+            var extension = GetFullExtension(file);
+            var filename = file.Name.Replace(extension, "");
+
+            if(getSeplitorCount(filename) > 2) {
+                return Split(filename);
+            }
+
             List<string> result = new List<string>();
             StringBuilder current = new StringBuilder();
 
@@ -407,6 +414,30 @@ namespace SubRenamer.Models
 
             return result;
         }
+
+        private static int getSeplitorCount(string filename)
+        {
+            int count = 0;
+            foreach (var item in filename)
+            {
+                switch (item)
+                {
+                    case '[':
+                    case ']':
+                    case '(':
+                    case ')':
+                    case '{':
+                    case '}':
+                    case '_':
+                    case '-':
+                        count++;
+                        break;
+                    default: break;
+                }
+            }
+            return count;
+        }
+
 
         /// <summary>
         /// 解析集号（去除前缀如 "EP"、"Episode"、"第"、"话" 等）
@@ -502,6 +533,8 @@ namespace SubRenamer.Models
             s = s.Replace(')', ' ');
             s = s.Replace('{', ' ');
             s = s.Replace('}', ' ');
+            s = s.Replace('-', ' ');
+            s = s.Replace('_', ' ');
             s = Regex.Replace(s, "[\\s]+", " ");
             return s;
         }

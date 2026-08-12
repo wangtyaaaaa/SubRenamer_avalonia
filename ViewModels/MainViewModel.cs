@@ -147,7 +147,7 @@ namespace SubRenamer.ViewModels
             set => SetProperty(ref _subtitleExts, value);
         }
 
-        private string _minMatchRate = "0.7";
+        private string _minMatchRate = "0.6";
         /// <summary>
         /// 文件名匹配度阈值（0-1之间）
         /// </summary>

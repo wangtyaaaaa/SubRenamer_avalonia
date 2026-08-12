@@ -225,13 +225,13 @@ namespace SubRenamer.Models
                         // 如果匹配度达标且集号位置相同，则加入该组
                         if (total_match_rate >= min_match_rate)
                         {
-                            var _pos1 = GetLikelyEpNumPos(curr_splited_name);
-                            var _pos2 = _group.LikelyEpNumPos;
-                            if (HeadSequenceEqual(_pos1, _pos2) && total_match_rate > match_group_rate)
-                            {
-                                match_group_rate = total_match_rate;
-                                match_group_num = g_num;
-                            }
+                            // var _pos1 = GetLikelyEpNumPos(curr_splited_name);
+                            // var _pos2 = _group.LikelyEpNumPos;
+                            // if (HeadSequenceEqual(_pos1, _pos2) && total_match_rate > match_group_rate)
+                            // {
+                            match_group_rate = total_match_rate;
+                            match_group_num = g_num;
+                            // }
                         }
                     }
                 }
@@ -281,19 +281,26 @@ namespace SubRenamer.Models
 
             for (int col = 0; col < colCount; col++)
             {
+                int current_num = 0;
                 HashSet<string> uniqueValues = new HashSet<string>();
                 foreach (var _v in files)
                 {
                     if (col < _v.Splited_filename.Count)
+                    {
                         uniqueValues.Add(_v.Splited_filename[col]);
+                        current_num++;
+                    }
                 }
 
-                int currentUniqueCount = uniqueValues.Count;
-
-                if (currentUniqueCount > maxUniqueCount)
+                if (current_num == files.Count)
                 {
-                    maxUniqueCount = currentUniqueCount;
-                    maxUniqueColumn = col;
+                    int currentUniqueCount = uniqueValues.Count;
+
+                    if (currentUniqueCount > maxUniqueCount)
+                    {
+                        maxUniqueCount = currentUniqueCount;
+                        maxUniqueColumn = col;
+                    }
                 }
             }
 

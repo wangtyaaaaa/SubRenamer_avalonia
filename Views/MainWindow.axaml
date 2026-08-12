@@ -76,7 +76,7 @@
       <ItemsControl x:Name="FileList" ItemsSource="{Binding MatchGroups}">
         <ItemsControl.ItemTemplate>
           <DataTemplate>
-            <Border Margin="0,4" Background="{Binding BackgroundBrush}"
+            <Border Margin="2,2,6,2" Background="{Binding BackgroundBrush}"
                     BorderBrush="{DynamicResource SystemControlForegroundBaseLowBrush}"
                     BorderThickness="1" CornerRadius="4">
               <StackPanel Margin="8">
